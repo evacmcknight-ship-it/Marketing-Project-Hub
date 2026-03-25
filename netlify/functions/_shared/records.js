@@ -2,6 +2,13 @@ function sanitizeString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeUuid(value) {
+  const normalized = sanitizeString(value);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalized)
+    ? normalized
+    : undefined;
+}
+
 function normalizeDateString(value) {
   const normalized = sanitizeString(value);
   return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : null;
@@ -31,7 +38,7 @@ function toInitiativeRecord(payload) {
   }
 
   return {
-    id: sanitizeString(payload.id) || undefined,
+    id: normalizeUuid(payload.id),
     name,
     type,
     channels,
@@ -75,7 +82,7 @@ function toRequestRecord(payload) {
   }
 
   return {
-    id: sanitizeString(payload.id) || undefined,
+    id: normalizeUuid(payload.id),
     name,
     requested_by: requestedBy,
     quarter,
