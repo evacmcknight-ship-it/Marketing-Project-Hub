@@ -593,7 +593,11 @@ const state = {
   },
   activeView: "roadmap",
   sortMode: "default",
-  expandedQuarters: [],
+  expandedColumns: {
+    roadmap: [],
+    calendar: [],
+    social: [],
+  },
   editingId: null,
   convertingRequestId: null,
   sync: {
@@ -775,7 +779,7 @@ function showPublishStatus(message, isBusy = false) {
   });
 }
 
-function setSharedReadyStatus(message = "Shared workspace live. Everyone on the Netlify link sees the same saved data.") {
+function setSharedReadyStatus(message = "Shared Workspace is Live") {
   setSyncState({
     mode: "shared",
     message,
@@ -976,46 +980,17 @@ function renderViews() {
 function renderRoadmapView() {
   const filtered = getFilteredInitiatives().sort(sortByQuarterThenName);
   const quarters = uniqueValues(filtered.map((item) => item.quarter));
-  const grid = document.createElement("div");
-  grid.className = "roadmap-grid";
-
-  if (quarters.length === 0) {
-    grid.append(createEmptyState("No initiatives match the current filters."));
-  } else {
-    const expandedQuarters = getExpandedQuarterSet(quarters);
-    quarters.forEach((quarter) => {
-      const column = document.createElement("section");
-      column.className = "quarter-column";
-      const isExpanded = expandedQuarters.has(quarter);
-      const initiatives = sortItemsForColumn(filtered.filter((item) => item.quarter === quarter));
-      column.classList.toggle("collapsed", !isExpanded);
-      column.innerHTML = `
-        <header class="quarter-header">
-          <div class="quarter-toggle" aria-expanded="${isExpanded}">
-            <span class="quarter-heading-group">
-              <span class="quarter-heading">${quarter}</span>
-              <span class="quarter-count">${initiatives.length} items</span>
-            </span>
-            <button
-              class="quarter-action"
-              type="button"
-              aria-label="${isExpanded ? `Collapse ${quarter}` : `Expand ${quarter}`}"
-              title="${isExpanded ? `Collapse ${quarter}` : `Expand ${quarter}`}"
-            >
-              ${isExpanded ? "Collapse" : "+"}
-            </button>
-          </div>
-        </header>
-      `;
-      column.querySelector(".quarter-action").addEventListener("click", () => toggleQuarter(quarter));
-      if (isExpanded) {
-        column.append(renderCardStack(initiatives));
-      }
-      grid.append(column);
-    });
-  }
-
-  elements.roadmapView.replaceChildren(grid);
+  renderCollapsibleColumnView({
+    viewKey: "roadmap",
+    labels: quarters,
+    defaultExpandedLabel: quarters.includes(getCurrentQuarterLabel()) ? getCurrentQuarterLabel() : getFocusedQuarter(state.initiatives),
+    getItemsForLabel: (quarter) => filtered.filter((item) => item.quarter === quarter),
+    countLabel: (count) => `${count} items`,
+    emptyViewMessage: "No initiatives match the current filters.",
+    emptyColumnMessage: "No initiatives in this column.",
+    gridClassName: "roadmap-grid",
+    target: elements.roadmapView,
+  });
 }
 
 function renderCalendarView() {
@@ -1023,41 +998,36 @@ function renderCalendarView() {
   const activeQuarter = getFocusedQuarter(filtered);
   const [quarterKey] = activeQuarter.split(" ");
   const baseMonths = QUARTER_MONTHS[quarterKey];
-  const grid = document.createElement("div");
-  grid.className = "calendar-grid";
 
   if (!baseMonths) {
+    const grid = document.createElement("div");
+    grid.className = "calendar-grid";
     grid.append(createEmptyState("Select a specific quarter or use the standard Q1-Q4 YYYY format."));
     elements.calendarView.replaceChildren(grid);
     return;
   }
 
-  baseMonths.forEach((month) => {
-    const monthSection = document.createElement("section");
-    monthSection.className = "calendar-month";
+  const itemsByMonth = Object.fromEntries(
+    baseMonths.map((month) => [
+      month,
+      filtered
+        .filter((item) => item.quarter === activeQuarter)
+        .filter((item) => getItemMonthLabel(item) === month)
+        .sort(getColumnSort()),
+    ])
+  );
 
-    const items = filtered
-      .filter((item) => item.quarter === activeQuarter)
-      .filter((item) => getItemMonthLabel(item) === month)
-      .sort(getColumnSort());
-
-    monthSection.innerHTML = `
-      <header>
-        <h2>${month}</h2>
-        <p>${items.length} items</p>
-      </header>
-    `;
-
-    if (items.length === 0) {
-      monthSection.append(createEmptyState("No planned content in this month yet."));
-    } else {
-      monthSection.append(renderCardStack(items));
-    }
-
-    grid.append(monthSection);
+  renderCollapsibleColumnView({
+    viewKey: "calendar",
+    labels: baseMonths,
+    defaultExpandedLabel: baseMonths.find((month) => itemsByMonth[month].length > 0) || baseMonths[0],
+    getItemsForLabel: (month) => itemsByMonth[month],
+    countLabel: (count) => `${count} items`,
+    emptyViewMessage: "Select a specific quarter or use the standard Q1-Q4 YYYY format.",
+    emptyColumnMessage: "No planned content in this month yet.",
+    gridClassName: "calendar-grid",
+    target: elements.calendarView,
   });
-
-  elements.calendarView.replaceChildren(grid);
 }
 
 function renderSocialView() {
@@ -1065,41 +1035,36 @@ function renderSocialView() {
   const activeQuarter = getFocusedQuarter(filtered);
   const [quarterKey] = activeQuarter.split(" ");
   const baseMonths = QUARTER_MONTHS[quarterKey];
-  const grid = document.createElement("div");
-  grid.className = "calendar-grid";
 
   if (!baseMonths) {
+    const grid = document.createElement("div");
+    grid.className = "calendar-grid";
     grid.append(createEmptyState("Select a specific quarter or use the standard Q1-Q4 YYYY format."));
     elements.socialView.replaceChildren(grid);
     return;
   }
 
-  baseMonths.forEach((month) => {
-    const monthSection = document.createElement("section");
-    monthSection.className = "calendar-month";
+  const itemsByMonth = Object.fromEntries(
+    baseMonths.map((month) => [
+      month,
+      filtered
+        .filter((item) => item.quarter === activeQuarter)
+        .filter((item) => getItemMonthLabel(item) === month)
+        .sort(getColumnSort()),
+    ])
+  );
 
-    const items = filtered
-      .filter((item) => item.quarter === activeQuarter)
-      .filter((item) => getItemMonthLabel(item) === month)
-      .sort(getColumnSort());
-
-    monthSection.innerHTML = `
-      <header>
-        <h2>${month}</h2>
-        <p>${items.length} posts</p>
-      </header>
-    `;
-
-    if (items.length === 0) {
-      monthSection.append(createEmptyState("No planned social posts in this month yet."));
-    } else {
-      monthSection.append(renderCardStack(items));
-    }
-
-    grid.append(monthSection);
+  renderCollapsibleColumnView({
+    viewKey: "social",
+    labels: baseMonths,
+    defaultExpandedLabel: baseMonths.find((month) => itemsByMonth[month].length > 0) || baseMonths[0],
+    getItemsForLabel: (month) => itemsByMonth[month],
+    countLabel: (count) => `${count} posts`,
+    emptyViewMessage: "Select a specific quarter or use the standard Q1-Q4 YYYY format.",
+    emptyColumnMessage: "No planned social posts in this month yet.",
+    gridClassName: "calendar-grid",
+    target: elements.socialView,
   });
-
-  elements.socialView.replaceChildren(grid);
 }
 
 function renderGoalsView() {
@@ -1195,10 +1160,10 @@ function createInitiativeCard(item) {
   fragment.querySelector(".card-title").textContent = item.name;
   fragment.querySelector(".owner-pill").textContent = item.owner;
   fragment.querySelector(".deadline-pill").textContent = getDateBadgeLabel(item);
-  fragment.querySelector(".status-fill").style.background = config.color;
-  fragment.querySelector(".status-fill").style.width = config.width;
   fragment.querySelector(".status-label").textContent = item.status;
   fragment.querySelector(".status-label").style.color = config.color;
+  fragment.querySelector(".status-label").style.borderColor = config.color;
+  fragment.querySelector(".status-label").style.background = `${config.color}14`;
   const editButton = fragment.querySelector(".card-edit-button");
   editButton.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -1741,12 +1706,12 @@ async function publishLocalDataToShared() {
       },
     });
     await hydrateSharedState({ preserveStatus: true });
-    setSharedReadyStatus("Current browser data is now the shared workspace for everyone on the Netlify link.");
+    setSharedReadyStatus();
   } catch (error) {
     console.error(error);
     if (error.message.includes("already initialized")) {
       await hydrateSharedState({ preserveStatus: true, suppressErrors: true });
-      setSharedReadyStatus("Shared workspace was already published. Showing the live shared data.");
+      setSharedReadyStatus();
       return;
     }
     showPublishStatus(
@@ -2210,26 +2175,86 @@ function getFocusedQuarter(items) {
   return upcomingIndex === -1 ? quarters[quarters.length - 1] : quarters[upcomingIndex];
 }
 
-function getExpandedQuarterSet(quarters) {
-  const visibleExpanded = state.expandedQuarters.filter((quarter) => quarters.includes(quarter));
-  if (visibleExpanded.length === 0 && quarters.length > 0) {
-    const defaultQuarter = quarters.includes(getCurrentQuarterLabel()) ? getCurrentQuarterLabel() : getFocusedQuarter(
-      state.initiatives
-    );
-    state.expandedQuarters = [quarters.includes(defaultQuarter) ? defaultQuarter : quarters[0]];
-  } else {
-    state.expandedQuarters = visibleExpanded;
+function renderCollapsibleColumnView({
+  viewKey,
+  labels,
+  defaultExpandedLabel,
+  getItemsForLabel,
+  countLabel,
+  emptyViewMessage,
+  emptyColumnMessage,
+  gridClassName,
+  target,
+}) {
+  const grid = document.createElement("div");
+  grid.className = gridClassName;
+
+  if (labels.length === 0) {
+    grid.append(createEmptyState(emptyViewMessage));
+    target.replaceChildren(grid);
+    return;
   }
 
-  return new Set(state.expandedQuarters);
+  const expandedLabels = getExpandedColumnSet(viewKey, labels, defaultExpandedLabel);
+
+  labels.forEach((label) => {
+    const items = getItemsForLabel(label);
+    const isExpanded = expandedLabels.has(label);
+    const column = document.createElement("section");
+    column.className = "quarter-column";
+    column.classList.toggle("collapsed", !isExpanded);
+    column.innerHTML = `
+      <header class="quarter-header">
+        <div class="quarter-toggle" aria-expanded="${isExpanded}">
+          <span class="quarter-heading-group">
+            <span class="quarter-heading">${label}</span>
+            <span class="quarter-count">${countLabel(items.length)}</span>
+          </span>
+          <button
+            class="quarter-action"
+            type="button"
+            aria-label="${isExpanded ? `Collapse ${label}` : `Expand ${label}`}"
+            title="${isExpanded ? `Collapse ${label}` : `Expand ${label}`}"
+          >
+            ${isExpanded ? "Collapse" : "+"}
+          </button>
+        </div>
+      </header>
+    `;
+    column.querySelector(".quarter-action").addEventListener("click", () => toggleColumn(viewKey, label));
+
+    if (isExpanded) {
+      column.append(items.length === 0 ? createEmptyState(emptyColumnMessage) : renderCardStack(items));
+    }
+
+    grid.append(column);
+  });
+
+  target.replaceChildren(grid);
 }
 
-function toggleQuarter(quarter) {
-  if (state.expandedQuarters.includes(quarter)) {
-    state.expandedQuarters = state.expandedQuarters.filter((item) => item !== quarter);
+function getExpandedColumnSet(viewKey, labels, defaultExpandedLabel = labels[0]) {
+  const currentExpanded = state.expandedColumns[viewKey] || [];
+  const visibleExpanded = currentExpanded.filter((label) => labels.includes(label));
+
+  if (visibleExpanded.length === 0 && labels.length > 0) {
+    state.expandedColumns[viewKey] = [labels.includes(defaultExpandedLabel) ? defaultExpandedLabel : labels[0]];
   } else {
-    state.expandedQuarters = [...state.expandedQuarters, quarter];
+    state.expandedColumns[viewKey] = visibleExpanded;
   }
+
+  return new Set(state.expandedColumns[viewKey]);
+}
+
+function toggleColumn(viewKey, label) {
+  const currentExpanded = state.expandedColumns[viewKey] || [];
+
+  if (currentExpanded.includes(label)) {
+    state.expandedColumns[viewKey] = currentExpanded.filter((item) => item !== label);
+  } else {
+    state.expandedColumns[viewKey] = [...currentExpanded, label];
+  }
+
   renderViews();
 }
 

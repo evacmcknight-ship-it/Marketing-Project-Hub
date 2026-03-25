@@ -22,7 +22,7 @@
   --radius-xl: 28px;
   --radius-lg: 22px;
   --radius-md: 16px;
-  --collapsed-quarter-width: 64px;
+  --collapsed-quarter-width: 56px;
 }
 
 * {
@@ -48,7 +48,7 @@ textarea {
 }
 
 .app-shell {
-  width: min(1560px, calc(100vw - 32px));
+  width: min(1760px, calc(100vw - 24px));
   margin: 0 auto;
   padding: 24px 0 44px;
 }
@@ -520,8 +520,11 @@ textarea {
 
 .roadmap-grid,
 .calendar-grid {
-  display: grid;
+  display: flex;
   gap: 18px;
+  align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 .goals-panel {
@@ -562,18 +565,6 @@ textarea {
   margin-top: 8px;
 }
 
-.roadmap-grid {
-  display: flex;
-  gap: 18px;
-  align-items: stretch;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
-.calendar-grid {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-
 .quarter-column,
 .calendar-month {
   display: grid;
@@ -589,13 +580,13 @@ textarea {
 .quarter-column.collapsed {
   flex: 0 0 var(--collapsed-quarter-width);
   width: var(--collapsed-quarter-width);
-  padding: 12px 8px;
+  padding: 10px 6px;
   overflow: hidden;
 }
 
 .quarter-column {
-  flex: 1 1 300px;
-  min-width: 280px;
+  flex: 1 1 320px;
+  min-width: 300px;
 }
 
 .quarter-header {
@@ -645,16 +636,23 @@ textarea {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+.quarter-column.collapsed .quarter-heading-group {
+  width: 100%;
+  justify-items: center;
 }
 
 .quarter-column.collapsed .quarter-heading {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
+  writing-mode: horizontal-tb;
+  transform: none;
   text-align: center;
-  font-size: 0.8rem;
-  line-height: 1.2;
-  letter-spacing: 0.02em;
+  font-size: 0.74rem;
+  line-height: 1.05;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .quarter-column.collapsed .quarter-count {
@@ -664,14 +662,14 @@ textarea {
 .quarter-column.collapsed .quarter-action {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.92);
   color: var(--navy-900);
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1;
   text-decoration: none;
 }
@@ -754,23 +752,19 @@ textarea {
   line-height: 1.25;
 }
 
-.status-track {
-  position: relative;
-  flex: 1;
-  height: 10px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(93, 118, 153, 0.16);
-}
-
-.status-fill {
-  height: 100%;
-  border-radius: inherit;
+.status-row {
+  justify-content: flex-start;
 }
 
 .status-label {
-  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.82rem;
   font-weight: 700;
+  background: rgba(16, 45, 99, 0.06);
 }
 
 .card-edit-button {
