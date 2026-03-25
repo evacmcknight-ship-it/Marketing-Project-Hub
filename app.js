@@ -1,6 +1,8 @@
 const STORAGE_KEY = "marketing-initiative-dashboard-v4";
 const REQUESTS_STORAGE_KEY = "marketing-request-catalog-v1";
 const GOALS_STORAGE_KEY = "marketing-goals-rich-text-v1";
+const API_BASE = "/.netlify/functions";
+const SHARED_REFRESH_INTERVAL_MS = 60000;
 
 const OWNERS = ["Eva", "Neal", "Kelly"];
 const CHANNELS = ["Inbound", "Outbound", "Events", "Referrals"];
@@ -594,7 +596,16 @@ const state = {
   expandedQuarters: [],
   editingId: null,
   convertingRequestId: null,
+  sync: {
+    mode: "connecting",
+    message: "Connecting to shared workspace…",
+    canPublishLocalData: false,
+    isBusy: false,
+  },
 };
+
+let goalsSaveTimeout = 0;
+let sharedRefreshTimer = 0;
 
 const elements = {
   addButton: document.querySelector("#add-initiative-button"),
@@ -609,6 +620,9 @@ const elements = {
   tabButtons: document.querySelectorAll(".tab-button"),
   sortSelect: document.querySelector("#column-sort"),
   sortControl: document.querySelector("#sort-control"),
+  syncStatus: document.querySelector("#sync-status"),
+  syncStatusText: document.querySelector("#sync-status-text"),
+  publishSharedDataButton: document.querySelector("#publish-shared-data-button"),
   roadmapView: document.querySelector("#roadmap-view"),
   calendarView: document.querySelector("#calendar-view"),
   socialView: document.querySelector("#social-view"),
@@ -654,11 +668,18 @@ const elements = {
   cardTemplate: document.querySelector("#initiative-card-template"),
 };
 
-initialize();
+initialize().catch((error) => {
+  console.error(error);
+  showLocalOnlyStatus("Shared workspace unavailable. Changes stay in this browser only.");
+  render();
+});
 
-function initialize() {
+async function initialize() {
   bindEvents();
   render();
+  startSharedRefreshLoop();
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  await hydrateSharedState();
 }
 
 function bindEvents() {
@@ -677,6 +698,7 @@ function bindEvents() {
   elements.detailsCloseButton.addEventListener("click", closeDetailsDialog);
   elements.detailsEditButton.addEventListener("click", handleDetailsEdit);
   elements.initiativeDeleteButton.addEventListener("click", handleInitiativeDelete);
+  elements.publishSharedDataButton.addEventListener("click", publishLocalDataToShared);
 
   elements.quarterFilter.addEventListener("change", handleSingleFilterChange);
   elements.ownerFilter.addEventListener("change", handleSingleFilterChange);
@@ -707,6 +729,7 @@ function render() {
   if (!WORKSPACE_VIEWS.includes(state.activeView)) {
     state.activeView = "roadmap";
   }
+  renderSyncStatus();
   populateEditorTypeOptions();
   populateQuarterOptions();
   populateFilterOptions();
@@ -718,6 +741,62 @@ function render() {
   renderSnapshot();
   renderViews();
   syncTabs();
+}
+
+function renderSyncStatus() {
+  elements.syncStatus.dataset.state = state.sync.mode;
+  elements.syncStatusText.textContent = state.sync.message;
+  elements.publishSharedDataButton.hidden = !state.sync.canPublishLocalData;
+  elements.publishSharedDataButton.disabled = state.sync.isBusy;
+  elements.publishSharedDataButton.textContent =
+    state.sync.isBusy && state.sync.canPublishLocalData ? "Publishing..." : "Publish Local Data";
+}
+
+function setSyncState(nextState) {
+  state.sync = { ...state.sync, ...nextState };
+  renderSyncStatus();
+}
+
+function showLocalOnlyStatus(message) {
+  setSyncState({
+    mode: "offline",
+    message,
+    canPublishLocalData: false,
+    isBusy: false,
+  });
+}
+
+function showPublishStatus(message, isBusy = false) {
+  setSyncState({
+    mode: "publish",
+    message,
+    canPublishLocalData: true,
+    isBusy,
+  });
+}
+
+function setSharedReadyStatus(message = "Shared workspace live. Everyone on the Netlify link sees the same saved data.") {
+  setSyncState({
+    mode: "shared",
+    message,
+    canPublishLocalData: false,
+    isBusy: false,
+  });
+}
+
+function startSharedRefreshLoop() {
+  if (sharedRefreshTimer) {
+    return;
+  }
+  sharedRefreshTimer = window.setInterval(() => {
+    hydrateSharedState({ background: true });
+  }, SHARED_REFRESH_INTERVAL_MS);
+}
+
+function handleVisibilityChange() {
+  if (!document.hidden) {
+    hydrateSharedState({ background: true });
+  }
 }
 
 function populateEditorTypeOptions() {
@@ -1053,11 +1132,13 @@ function renderGoalsView() {
     document.execCommand(button.dataset.command, false, button.dataset.value || null);
     state.goalsHtml = editor.innerHTML;
     persistGoalsHtml();
+    queueGoalsSave();
   });
 
   editor.addEventListener("input", () => {
     state.goalsHtml = editor.innerHTML;
     persistGoalsHtml();
+    queueGoalsSave();
   });
 }
 
@@ -1327,14 +1408,42 @@ function handleRequestConvert() {
   openDialog(null, id);
 }
 
-function handleRequestDelete() {
+async function handleRequestDelete() {
   const id = elements.requestDetailsDialog.dataset.id;
   const request = getRequestById(id);
   if (!request || !window.confirm(`Delete "${request.name}"?`)) {
     return;
   }
-  state.requests = state.requests.filter((item) => item.id !== id);
-  persistRequests();
+
+  if (isSharedWorkspaceActive()) {
+    setSyncState({
+      mode: "saving",
+      message: `Deleting "${request.name}" from the shared workspace…`,
+      canPublishLocalData: false,
+      isBusy: true,
+    });
+
+    try {
+      await deleteRequestInShared(id);
+      await hydrateSharedState({ background: true, preserveStatus: true });
+      setSharedReadyStatus();
+    } catch (error) {
+      console.error(error);
+      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
+      setSyncState({
+        mode: "error",
+        message: `Could not delete "${request.name}" from the shared workspace.`,
+        canPublishLocalData: false,
+        isBusy: false,
+      });
+      window.alert(`"${request.name}" was not deleted from the shared workspace. Please try again.`);
+      return;
+    }
+  } else {
+    state.requests = state.requests.filter((item) => item.id !== id);
+    persistRequests();
+  }
+
   closeRequestDetailsDialog();
   renderViews();
 }
@@ -1343,19 +1452,47 @@ function handleTypeEditorChange() {
   syncInitiativeTypeFields(true);
 }
 
-function handleInitiativeDelete() {
+async function handleInitiativeDelete() {
   const id = elements.detailsDialog.dataset.id;
   const initiative = getInitiativeById(id);
   if (!initiative || !window.confirm(`Delete "${initiative.name}"?`)) {
     return;
   }
-  state.initiatives = state.initiatives.filter((item) => item.id !== id);
-  persistInitiatives();
+
+  if (isSharedWorkspaceActive()) {
+    setSyncState({
+      mode: "saving",
+      message: `Deleting "${initiative.name}" from the shared workspace…`,
+      canPublishLocalData: false,
+      isBusy: true,
+    });
+
+    try {
+      await deleteInitiativeInShared(id);
+      await hydrateSharedState({ background: true, preserveStatus: true });
+      setSharedReadyStatus();
+    } catch (error) {
+      console.error(error);
+      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
+      setSyncState({
+        mode: "error",
+        message: `Could not delete "${initiative.name}" from the shared workspace.`,
+        canPublishLocalData: false,
+        isBusy: false,
+      });
+      window.alert(`"${initiative.name}" was not deleted from the shared workspace. Please try again.`);
+      return;
+    }
+  } else {
+    state.initiatives = state.initiatives.filter((item) => item.id !== id);
+    persistInitiatives();
+  }
+
   closeDetailsDialog();
   render();
 }
 
-function handleFormSubmit(event) {
+async function handleFormSubmit(event) {
   event.preventDefault();
 
   const channels = getSelectedEditorChannels();
@@ -1396,6 +1533,40 @@ function handleFormSubmit(event) {
     description: formData.get("description").toString().trim(),
   };
 
+  if (isSharedWorkspaceActive()) {
+    const operationLabel = state.editingId ? "Updating initiative in the shared workspace…" : "Saving initiative to the shared workspace…";
+
+    setSyncState({
+      mode: "saving",
+      message: operationLabel,
+      canPublishLocalData: false,
+      isBusy: true,
+    });
+
+    try {
+      await saveInitiativeInShared(nextItem, Boolean(state.editingId));
+      if (state.convertingRequestId) {
+        await deleteRequestInShared(state.convertingRequestId);
+      }
+      await hydrateSharedState({ background: true, preserveStatus: true });
+      closeDialog();
+      render();
+      setSharedReadyStatus();
+      return;
+    } catch (error) {
+      console.error(error);
+      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
+      setSyncState({
+        mode: "error",
+        message: "Could not save that initiative to the shared workspace.",
+        canPublishLocalData: false,
+        isBusy: false,
+      });
+      window.alert("This initiative was not saved to the shared workspace. Please try again.");
+      return;
+    }
+  }
+
   if (state.editingId) {
     state.initiatives = state.initiatives.map((item) => (item.id === state.editingId ? nextItem : item));
   } else {
@@ -1412,7 +1583,7 @@ function handleFormSubmit(event) {
   render();
 }
 
-function handleRequestFormSubmit(event) {
+async function handleRequestFormSubmit(event) {
   event.preventDefault();
 
   const channels = getSelectedRequestChannels();
@@ -1433,11 +1604,256 @@ function handleRequestFormSubmit(event) {
     notes: formData.get("notes").toString().trim(),
   };
 
+  if (isSharedWorkspaceActive()) {
+    setSyncState({
+      mode: "saving",
+      message: "Saving request to the shared workspace…",
+      canPublishLocalData: false,
+      isBusy: true,
+    });
+
+    try {
+      await saveRequestInShared(request);
+      await hydrateSharedState({ background: true, preserveStatus: true });
+      closeRequestDialog();
+      state.activeView = "requests";
+      render();
+      setSharedReadyStatus();
+      return;
+    } catch (error) {
+      console.error(error);
+      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
+      setSyncState({
+        mode: "error",
+        message: "Could not save that request to the shared workspace.",
+        canPublishLocalData: false,
+        isBusy: false,
+      });
+      window.alert("This request was not saved to the shared workspace. Please try again.");
+      return;
+    }
+  }
+
   state.requests = [request, ...state.requests];
   persistRequests();
   closeRequestDialog();
   state.activeView = "requests";
   render();
+}
+
+function isSharedWorkspaceActive() {
+  return ["shared", "saving", "error"].includes(state.sync.mode);
+}
+
+function shouldSkipBackgroundRefresh() {
+  return (
+    document.hidden ||
+    state.sync.mode === "saving" ||
+    elements.dialog.open ||
+    elements.requestDialog.open ||
+    elements.detailsDialog.open ||
+    elements.requestDetailsDialog.open ||
+    goalsSaveTimeout > 0
+  );
+}
+
+function hasMeaningfulLocalData() {
+  return state.initiatives.length > 0 || state.requests.length > 0 || state.goalsHtml.trim().length > 0;
+}
+
+function applySharedState(payload) {
+  state.initiatives = normalizeInitiatives(payload.initiatives, { fallbackToDefaults: false });
+  state.requests = normalizeRequests(payload.requests);
+  state.goalsHtml =
+    typeof payload.goalsHtml === "string" ? payload.goalsHtml : buildDefaultGoalsHtml();
+  persistInitiatives();
+  persistRequests();
+  persistGoalsHtml();
+}
+
+async function hydrateSharedState({ background = false, suppressErrors = false, preserveStatus = false } = {}) {
+  if (background && (!isSharedWorkspaceActive() || shouldSkipBackgroundRefresh())) {
+    return null;
+  }
+
+  if (!background && !preserveStatus) {
+    setSyncState({
+      mode: "connecting",
+      message: "Connecting to shared workspace…",
+      canPublishLocalData: false,
+      isBusy: false,
+    });
+  }
+
+  try {
+    const [initiatives, requests, goals] = await Promise.all([
+      fetchInitiativesFromShared(),
+      fetchRequestsFromShared(),
+      fetchGoalsFromShared(),
+    ]);
+
+    if (!initiatives.length && !requests.length && !goals.exists) {
+      if (!background && hasMeaningfulLocalData()) {
+        showPublishStatus(
+          "Shared workspace is empty. Publish the data in this browser once to make it shared for everyone."
+        );
+      }
+      return null;
+    }
+
+    applySharedState({
+      initiatives,
+      requests,
+      goalsHtml: goals.exists ? goals.html : state.goalsHtml,
+    });
+    render();
+
+    if (!preserveStatus) {
+      setSharedReadyStatus();
+    }
+
+    return {
+      initiatives,
+      requests,
+      goals,
+    };
+  } catch (error) {
+    if (!suppressErrors) {
+      console.error(error);
+    }
+    if (!background && !suppressErrors) {
+      showLocalOnlyStatus("Shared workspace unavailable. Changes stay in this browser only.");
+    }
+    return null;
+  }
+}
+
+async function publishLocalDataToShared() {
+  showPublishStatus("Publishing current browser data to the shared workspace…", true);
+
+  try {
+    await requestSharedJson("bootstrap", {
+      method: "POST",
+      body: {
+        initiatives: state.initiatives,
+        requests: state.requests,
+        goalsHtml: state.goalsHtml,
+      },
+    });
+    await hydrateSharedState({ preserveStatus: true });
+    setSharedReadyStatus("Current browser data is now the shared workspace for everyone on the Netlify link.");
+  } catch (error) {
+    console.error(error);
+    if (error.message.includes("already initialized")) {
+      await hydrateSharedState({ preserveStatus: true, suppressErrors: true });
+      setSharedReadyStatus("Shared workspace was already published. Showing the live shared data.");
+      return;
+    }
+    showPublishStatus("Could not publish browser data to the shared workspace. Your browser copy is still intact.");
+    window.alert("Publishing to the shared workspace failed. Your current browser data was not lost.");
+  }
+}
+
+function queueGoalsSave() {
+  window.clearTimeout(goalsSaveTimeout);
+  goalsSaveTimeout = 0;
+
+  if (!isSharedWorkspaceActive()) {
+    return;
+  }
+
+  goalsSaveTimeout = window.setTimeout(async () => {
+    goalsSaveTimeout = 0;
+    setSyncState({
+      mode: "saving",
+      message: "Saving goals to the shared workspace…",
+      canPublishLocalData: false,
+      isBusy: true,
+    });
+
+    try {
+      await saveGoalsHtmlInShared(state.goalsHtml);
+      setSharedReadyStatus();
+    } catch (error) {
+      console.error(error);
+      setSyncState({
+        mode: "error",
+        message: "Goals were saved in this browser, but not to the shared workspace.",
+        canPublishLocalData: false,
+        isBusy: false,
+      });
+    }
+  }, 600);
+}
+
+async function requestSharedJson(endpoint, { method = "GET", body, query } = {}) {
+  const url = new URL(`${API_BASE}/${endpoint}`, window.location.origin);
+  Object.entries(query || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  const response = await fetch(url, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.error || `Shared request failed with status ${response.status}.`);
+  }
+
+  return payload;
+}
+
+function fetchInitiativesFromShared() {
+  return requestSharedJson("initiatives");
+}
+
+function saveInitiativeInShared(item, isEditing) {
+  return requestSharedJson("initiatives", {
+    method: isEditing ? "PATCH" : "POST",
+    query: isEditing ? { id: item.id } : undefined,
+    body: item,
+  });
+}
+
+function deleteInitiativeInShared(id) {
+  return requestSharedJson("initiatives", {
+    method: "DELETE",
+    query: { id },
+  });
+}
+
+function fetchRequestsFromShared() {
+  return requestSharedJson("requests");
+}
+
+function saveRequestInShared(request) {
+  return requestSharedJson("requests", {
+    method: "POST",
+    body: request,
+  });
+}
+
+function deleteRequestInShared(id) {
+  return requestSharedJson("requests", {
+    method: "DELETE",
+    query: { id },
+  });
+}
+
+function fetchGoalsFromShared() {
+  return requestSharedJson("goals");
+}
+
+function saveGoalsHtmlInShared(html) {
+  return requestSharedJson("goals", {
+    method: "PUT",
+    body: { html },
+  });
 }
 
 function loadInitiatives() {
@@ -1491,9 +1907,9 @@ function persistGoalsHtml() {
   window.localStorage.setItem(GOALS_STORAGE_KEY, state.goalsHtml);
 }
 
-function normalizeInitiatives(items) {
+function normalizeInitiatives(items, { fallbackToDefaults = true } = {}) {
   if (!Array.isArray(items) || items.length === 0) {
-    return defaultInitiatives;
+    return fallbackToDefaults ? defaultInitiatives : [];
   }
 
   return items.map((item) => {

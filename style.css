@@ -127,6 +127,67 @@ h3 {
   margin-bottom: 18px;
 }
 
+.toolbar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  justify-content: flex-end;
+}
+
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.sync-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--sky-500);
+  box-shadow: 0 0 0 4px rgba(126, 169, 208, 0.14);
+  flex: 0 0 auto;
+}
+
+.sync-status-text {
+  max-width: 320px;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.sync-status[data-state="shared"] .sync-status-dot {
+  background: var(--complete);
+  box-shadow: 0 0 0 4px rgba(32, 133, 89, 0.12);
+}
+
+.sync-status[data-state="saving"] .sync-status-dot,
+.sync-status[data-state="connecting"] .sync-status-dot {
+  background: var(--progress);
+  box-shadow: 0 0 0 4px rgba(47, 120, 198, 0.12);
+}
+
+.sync-status[data-state="publish"] .sync-status-dot {
+  background: #d18b20;
+  box-shadow: 0 0 0 4px rgba(209, 139, 32, 0.12);
+}
+
+.sync-status[data-state="offline"] .sync-status-dot,
+.sync-status[data-state="error"] .sync-status-dot {
+  background: var(--risk);
+  box-shadow: 0 0 0 4px rgba(201, 80, 80, 0.12);
+}
+
+.sync-action-button {
+  flex: 0 0 auto;
+}
+
 .primary-button,
 .ghost-button,
 .tab-button,
@@ -948,6 +1009,11 @@ textarea {
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .toolbar-meta {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 720px) {
@@ -978,6 +1044,11 @@ textarea {
 
   .roadmap-grid {
     display: flex;
+  }
+
+  .toolbar-meta,
+  .sync-status {
+    width: 100%;
   }
 
   .card-meta,

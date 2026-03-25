@@ -92,13 +92,27 @@
                 Marketing Goals
               </button>
             </nav>
-            <label class="sort-control" id="sort-control">
-              <span>Sort cards</span>
-              <select id="column-sort">
-                <option value="default">Default</option>
-                <option value="due-date">Due date</option>
-              </select>
-            </label>
+            <div class="toolbar-meta">
+              <div class="sync-status" id="sync-status" data-state="connecting">
+                <span class="sync-status-dot" aria-hidden="true"></span>
+                <span class="sync-status-text" id="sync-status-text">Connecting to shared workspace…</span>
+                <button
+                  class="ghost-button sync-action-button"
+                  id="publish-shared-data-button"
+                  type="button"
+                  hidden
+                >
+                  Publish Local Data
+                </button>
+              </div>
+              <label class="sort-control" id="sort-control">
+                <span>Sort cards</span>
+                <select id="column-sort">
+                  <option value="default">Default</option>
+                  <option value="due-date">Due date</option>
+                </select>
+              </label>
+            </div>
           </div>
 
           <section class="view-section active" id="roadmap-view"></section>
