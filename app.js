@@ -917,7 +917,14 @@ function renderRoadmapView() {
               <span class="quarter-heading">${quarter}</span>
               <span class="quarter-count">${initiatives.length} items</span>
             </span>
-            <button class="quarter-action" type="button">${isExpanded ? "Collapse" : "Expand"}</button>
+            <button
+              class="quarter-action"
+              type="button"
+              aria-label="${isExpanded ? `Collapse ${quarter}` : `Expand ${quarter}`}"
+              title="${isExpanded ? `Collapse ${quarter}` : `Expand ${quarter}`}"
+            >
+              ${isExpanded ? "Collapse" : "+"}
+            </button>
           </div>
         </header>
       `;

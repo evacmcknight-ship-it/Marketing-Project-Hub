@@ -22,6 +22,7 @@
   --radius-xl: 28px;
   --radius-lg: 22px;
   --radius-md: 16px;
+  --collapsed-quarter-width: 64px;
 }
 
 * {
@@ -525,9 +526,9 @@ textarea {
 }
 
 .quarter-column.collapsed {
-  flex: 0 0 108px;
-  width: 108px;
-  padding: 12px 10px;
+  flex: 0 0 var(--collapsed-quarter-width);
+  width: var(--collapsed-quarter-width);
+  padding: 12px 8px;
   overflow: hidden;
 }
 
@@ -582,16 +583,17 @@ textarea {
   min-height: 0;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
 }
 
 .quarter-column.collapsed .quarter-heading {
-  writing-mode: horizontal-tb;
-  transform: none;
-  text-align: left;
-  font-size: 0.88rem;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: center;
+  font-size: 0.8rem;
   line-height: 1.2;
+  letter-spacing: 0.02em;
 }
 
 .quarter-column.collapsed .quarter-count {
@@ -599,7 +601,18 @@ textarea {
 }
 
 .quarter-column.collapsed .quarter-action {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
   padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--navy-900);
+  font-size: 1rem;
+  line-height: 1;
+  text-decoration: none;
 }
 
 .quarter-column header,
