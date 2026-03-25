@@ -11,7 +11,18 @@ function normalizeUuid(value) {
 
 function normalizeDateString(value) {
   const normalized = sanitizeString(value);
-  return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return null;
+  }
+
+  const [year, month, day] = normalized.split("-").map((part) => Number.parseInt(part, 10));
+  const candidate = new Date(Date.UTC(year, month - 1, day));
+  const isValidDate =
+    candidate.getUTCFullYear() === year &&
+    candidate.getUTCMonth() === month - 1 &&
+    candidate.getUTCDate() === day;
+
+  return isValidDate ? normalized : null;
 }
 
 function normalizeChannels(channels) {

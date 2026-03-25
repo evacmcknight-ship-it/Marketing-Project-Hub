@@ -1749,8 +1749,12 @@ async function publishLocalDataToShared() {
       setSharedReadyStatus("Shared workspace was already published. Showing the live shared data.");
       return;
     }
-    showPublishStatus("Could not publish browser data to the shared workspace. Your browser copy is still intact.");
-    window.alert("Publishing to the shared workspace failed. Your current browser data was not lost.");
+    showPublishStatus(
+      `Could not publish browser data to the shared workspace. ${error.message || "Your browser copy is still intact."}`
+    );
+    window.alert(
+      `Publishing to the shared workspace failed.\n\n${error.message || "Your current browser data was not lost."}`
+    );
   }
 }
 
