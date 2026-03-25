@@ -1,0 +1,1998 @@
+const STORAGE_KEY = "marketing-initiative-dashboard-v4";
+const REQUESTS_STORAGE_KEY = "marketing-request-catalog-v1";
+const GOALS_STORAGE_KEY = "marketing-goals-rich-text-v1";
+
+const OWNERS = ["Eva", "Neal", "Kelly"];
+const CHANNELS = ["Inbound", "Outbound", "Events", "Referrals"];
+const TYPE_OPTIONS = [
+  "Strategic Initiative",
+  "Event",
+  "Social Posts",
+  "Website Only",
+  "Blog Posts",
+  "Ebooks/Guides",
+  "Webinars",
+  "Video",
+  "Case Studies",
+  "Other Sales Collateral",
+];
+const SOCIAL_TYPE = "Social Posts";
+const WORKSPACE_VIEWS = ["roadmap", "calendar", "social", "goals", "requests"];
+const CONTENT_TYPES = TYPE_OPTIONS.filter(
+  (type) => !["Strategic Initiative", "Event", SOCIAL_TYPE].includes(type)
+);
+const GOALS_CONTENT = {
+  intro:
+    "2026 is about clarifying who Mesh is, what we stand for, and why we win … and then executing consistently enough to convert that clarity into new business deals.",
+  strategicThemes: [
+    "Establish a clear, credible Mesh brand.",
+    "Ensure a unified Mesh narrative anchored in MeshInsights and IoT 2.0 across events, campaigns, outbound, partner motions, and sales conversations.",
+    "Diversify and scale demand generation.",
+    "Build multiple, repeatable demand engines that reduce dependence on any singular channel.",
+    "Operationalize marketing for scale.",
+    "Build the people, processes, and playbooks required to execute consistently as new deal volume increases.",
+  ],
+  smartGoals: [
+    {
+      title: "Generate 175 new business deals by December 31, 2026.",
+      children: [
+        "Reach at least 90 new business deals by June 30, 2026.",
+        "Increase new business close rate to 9%, up from 5.7% in 2025.",
+      ],
+    },
+    {
+      title: "Establish new brand messaging and positioning to reflect the Mesh 2.0 posture.",
+      children: [
+        "New pitch deck flow by February 28, 2026.",
+        "New brand messaging documentation and brand guidelines by April 30, 2026.",
+        "New website and P1 brand assets updated by June 30, 2026.",
+      ],
+    },
+    {
+      title: "Hire and onboard a Growth Marketing Manager by March 31, 2026.",
+    },
+    {
+      title: "Deliver an updated Marketing Center of Excellence Playbook/SOP by June 30, 2026.",
+    },
+  ],
+};
+
+const STATUS_CONFIG = {
+  Planned: { color: "var(--planned)", width: "30%" },
+  "In Progress": { color: "var(--progress)", width: "65%" },
+  "At Risk": { color: "var(--risk)", width: "85%" },
+  Complete: { color: "var(--complete)", width: "100%" },
+};
+
+const QUARTER_MONTHS = {
+  Q1: ["January", "February", "March"],
+  Q2: ["April", "May", "June"],
+  Q3: ["July", "August", "September"],
+  Q4: ["October", "November", "December"],
+};
+
+const OWNER_MIGRATION = {
+  Maya: "Neal",
+  Jordan: "Eva",
+  Priya: "Kelly",
+  Sofia: "Eva",
+  Alex: "Neal",
+  Danielle: "Kelly",
+};
+
+const defaultInitiatives = [
+  {
+    id: createId(),
+    name: "CES 2026",
+    type: "Event",
+    channels: ["Events"],
+    owner: "Kelly",
+    quarter: "Q1 2026",
+    status: "Complete",
+    startDate: "2026-01-06",
+    endDate: "2026-01-08",
+    deadline: "2026-01-08",
+    description: "CES event execution from January 6-8 in Las Vegas, marked complete in the GTM plan.",
+  },
+  {
+    id: createId(),
+    name: "AHR 2026",
+    type: "Event",
+    channels: ["Events"],
+    owner: "Kelly",
+    quarter: "Q1 2026",
+    status: "Complete",
+    startDate: "2026-02-02",
+    endDate: "2026-02-04",
+    deadline: "2026-02-04",
+    description: "AHR trade show execution from February 2-4 in Las Vegas, marked complete in the GTM plan.",
+  },
+  {
+    id: createId(),
+    name: "ConExpo 2026",
+    type: "Event",
+    channels: ["Events"],
+    owner: "Kelly",
+    quarter: "Q1 2026",
+    status: "Complete",
+    startDate: "2026-03-03",
+    endDate: "2026-03-05",
+    deadline: "2026-03-05",
+    description: "ConExpo event execution from March 3-5 in Las Vegas, marked complete in the GTM plan.",
+  },
+  {
+    id: createId(),
+    name: "MeshInsights Phase One Launch",
+    type: "Strategic Initiative",
+    channels: ["Inbound", "Outbound"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "In Progress",
+    deadline: "",
+    description: "Q1 launch motion covering launch foundation, outbound re-engagement, landing page, paid advertising, and thought leadership tied to MeshInsights.",
+  },
+  {
+    id: createId(),
+    name: "Brand Refresh Timing and Scope Decision",
+    type: "Strategic Initiative",
+    channels: ["Inbound", "Outbound"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "",
+    description: "Operational decision on the timing and scope of the brand refresh, marked complete in Q1 tactics.",
+  },
+  {
+    id: createId(),
+    name: "Call Recording Software Decision and Implementation",
+    type: "Strategic Initiative",
+    channels: ["Outbound"],
+    owner: "Neal",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "",
+    description: "Selection and implementation of call recording software, marked complete in the Q1 operational needs row.",
+  },
+  {
+    id: createId(),
+    name: "Moncur Brand Refresh and Pitch Deck Project",
+    type: "Strategic Initiative",
+    channels: ["Inbound", "Outbound"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "",
+    description: "Brand refresh and pitch deck work with Moncur, shown as started and complete in March.",
+  },
+  {
+    id: createId(),
+    name: "Growth Marketing Manager Hire and Onboarding",
+    type: "Strategic Initiative",
+    channels: ["Inbound", "Outbound"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "In Progress",
+    deadline: "",
+    description: "Slide 2 goal to hire and onboard a Growth Marketing Manager by March 31, 2026.",
+  },
+  {
+    id: createId(),
+    name: "MeshInsights Deck Training Rubric",
+    type: "Other Sales Collateral",
+    channels: ["Outbound"],
+    owner: "Neal",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-01-31",
+    description: "Sales enablement training asset marked complete in January.",
+  },
+  {
+    id: createId(),
+    name: "MeshInsights Asset Deep Dive and Preview",
+    type: "Other Sales Collateral",
+    channels: ["Outbound"],
+    owner: "Neal",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-01-31",
+    description: "Sales enablement preview session for MeshInsights assets, marked complete in January.",
+  },
+  {
+    id: createId(),
+    name: "HubSpot to Mosaic Mapping",
+    type: "Other Sales Collateral",
+    channels: ["Outbound"],
+    owner: "Neal",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-02-29",
+    description: "HubSpot to Mosaic mapping work shown as complete in February enablement training.",
+  },
+  {
+    id: createId(),
+    name: "Sales Pitch Deck Revision",
+    type: "Other Sales Collateral",
+    channels: ["Outbound"],
+    owner: "Neal",
+    quarter: "Q1 2026",
+    status: "In Progress",
+    deadline: "2026-03-31",
+    description: "Pitch deck revision and related training remain active in March based on the Q1 tactics slide.",
+  },
+  {
+    id: createId(),
+    name: "Call Tool Training",
+    type: "Other Sales Collateral",
+    channels: ["Outbound"],
+    owner: "Neal",
+    quarter: "Q1 2026",
+    status: "In Progress",
+    deadline: "2026-03-31",
+    description: "Call tool training appears in March sales enablement without a completion checkmark.",
+  },
+  {
+    id: createId(),
+    name: "Mesh Systems Returns to AHR 2026: Opportunities to Connect Beyond the Expo",
+    type: "Blog Posts",
+    channels: ["Inbound", "Events"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-01-09",
+    description: "Published on the live Mesh Systems blog on January 9, 2026.",
+  },
+  {
+    id: createId(),
+    name: "CES 2026 Recap: Five Signals Shaping the Next Era of Connected Products",
+    type: "Blog Posts",
+    channels: ["Inbound", "Events"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-01-13",
+    description: "Published on the live Mesh Systems blog on January 13, 2026.",
+  },
+  {
+    id: createId(),
+    name: "The Connected Product Expectation Gap is Widening",
+    type: "Blog Posts",
+    channels: ["Inbound"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-01-26",
+    description: "Published on the live Mesh Systems blog on January 26, 2026.",
+  },
+  {
+    id: createId(),
+    name: "Exein and Mesh Systems partner to strengthen embedded cybersecurity for US connected device manufacturers",
+    type: "Blog Posts",
+    channels: ["Inbound", "Referrals"],
+    owner: "Kelly",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-01-29",
+    description: "Published on the live Mesh Systems blog on January 29, 2026.",
+  },
+  {
+    id: createId(),
+    name: "What AHR Expo 2026 Revealed About the Future of Connected Products in HVACR",
+    type: "Blog Posts",
+    channels: ["Inbound", "Events"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-02-05",
+    description: "Published on the live Mesh Systems blog on February 5, 2026.",
+  },
+  {
+    id: createId(),
+    name: "Mesh Systems Named One of the 2026 Best Places to Work in Indiana for the Fourth Consecutive Year",
+    type: "Blog Posts",
+    channels: ["Inbound"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-02-17",
+    description: "Published on the live Mesh Systems blog on February 17, 2026.",
+  },
+  {
+    id: createId(),
+    name: "Where the Signal Layer Breaks Down in Connected Product Operations",
+    type: "Blog Posts",
+    channels: ["Inbound"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-02-19",
+    description: "Published on the live Mesh Systems blog on February 19, 2026.",
+  },
+  {
+    id: createId(),
+    name: "Join Mesh Systems at These Industry Shows: Spring 2026",
+    type: "Blog Posts",
+    channels: ["Inbound", "Events"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-02-25",
+    description: "Published on the live Mesh Systems blog on February 25, 2026.",
+  },
+  {
+    id: createId(),
+    name: "Alarm Fatigue Is Quietly Undermining Connected Operations",
+    type: "Blog Posts",
+    channels: ["Inbound"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-03-06",
+    description: "Published on the live Mesh Systems blog on March 6, 2026.",
+  },
+  {
+    id: createId(),
+    name: "The Last Mile of Connected Product Value",
+    type: "Ebooks/Guides",
+    channels: ["Inbound"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-02-29",
+    description: "Executive-level gated ebook marked complete in February and referenced again in the MeshInsights campaign overview.",
+  },
+  {
+    id: createId(),
+    name: "Partner Page (High Level)",
+    type: "Website Only",
+    channels: ["Inbound", "Referrals"],
+    owner: "Kelly",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-01-31",
+    description: "High-level partner page marked complete in January.",
+  },
+  {
+    id: createId(),
+    name: "Microsoft Partner Spotlight Page",
+    type: "Website Only",
+    channels: ["Inbound", "Referrals"],
+    owner: "Kelly",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-01-31",
+    description: "Microsoft partner spotlight page marked complete in January.",
+  },
+  {
+    id: createId(),
+    name: "MeshInsights Advertising Landing Page and Ads",
+    type: "Website Only",
+    channels: ["Inbound", "Outbound"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-01-31",
+    description: "MeshInsights advertising landing page and ads marked complete in January.",
+  },
+  {
+    id: createId(),
+    name: "Exein Partner Spotlight Page",
+    type: "Website Only",
+    channels: ["Inbound", "Referrals"],
+    owner: "Kelly",
+    quarter: "Q1 2026",
+    status: "Complete",
+    deadline: "2026-02-29",
+    description: "Exein partner spotlight page marked complete in February.",
+  },
+  {
+    id: createId(),
+    name: "STMicro Partner Spotlight Page",
+    type: "Website Only",
+    channels: ["Inbound", "Referrals"],
+    owner: "Kelly",
+    quarter: "Q1 2026",
+    status: "In Progress",
+    deadline: "2026-03-31",
+    description: "STMicro partner spotlight page is listed in March without a completion checkmark.",
+  },
+  {
+    id: createId(),
+    name: "MeshInsights Explainer Video",
+    type: "Video",
+    channels: ["Inbound", "Outbound"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "In Progress",
+    deadline: "2026-03-31",
+    description: "Explainer video is listed in March content and in the MeshInsights campaign overview without a completion checkmark.",
+  },
+  {
+    id: createId(),
+    name: "Q1 Case Study Pack",
+    type: "Case Studies",
+    channels: ["Inbound", "Outbound"],
+    owner: "Eva",
+    quarter: "Q1 2026",
+    status: "In Progress",
+    deadline: "2026-03-31",
+    description: "Case study work for Eaton 2.0, F'real, and American Crane is listed in March without completion checkmarks.",
+  },
+  {
+    id: createId(),
+    name: "Microsoft Quarterly Newsletter and Win Wire",
+    type: "Other Sales Collateral",
+    channels: ["Outbound", "Referrals"],
+    owner: "Kelly",
+    quarter: "Q1 2026",
+    status: "In Progress",
+    deadline: "2026-03-31",
+    description: "MSFT quarterly newsletter and win wire are listed in March partner spotlights without completion marks.",
+  },
+  {
+    id: createId(),
+    name: "Webinar and Ebook Promo: The Next Mile of Connected Product ROI",
+    type: "Strategic Initiative",
+    channels: ["Inbound", "Outbound"],
+    owner: "Eva",
+    quarter: "Q2 2026",
+    status: "Planned",
+    deadline: "",
+    description: "Q2 campaign listed for April around webinar and ebook promotion tied to connected product ROI.",
+  },
+  {
+    id: createId(),
+    name: "MODEX 2026",
+    type: "Event",
+    channels: ["Events"],
+    owner: "Kelly",
+    quarter: "Q2 2026",
+    status: "Planned",
+    startDate: "2026-04-13",
+    endDate: "2026-04-16",
+    deadline: "2026-04-16",
+    description: "MODEX event scheduled for April 13-16 on the Q2 tactics slide.",
+  },
+  {
+    id: createId(),
+    name: "HMI 2026",
+    type: "Event",
+    channels: ["Events"],
+    owner: "Kelly",
+    quarter: "Q2 2026",
+    status: "Planned",
+    startDate: "2026-04-20",
+    endDate: "2026-04-24",
+    deadline: "2026-04-24",
+    description: "HMI event scheduled for April 20-24 on the Q2 tactics slide.",
+  },
+  {
+    id: createId(),
+    name: "NRA Show 2026",
+    type: "Event",
+    channels: ["Events"],
+    owner: "Kelly",
+    quarter: "Q2 2026",
+    status: "Planned",
+    startDate: "2026-05-16",
+    endDate: "2026-05-19",
+    deadline: "2026-05-19",
+    description: "NRA Show event scheduled for May 16-19 on the Q2 tactics slide.",
+  },
+  {
+    id: createId(),
+    name: "New Mesh Brand Positioning",
+    type: "Strategic Initiative",
+    channels: ["Inbound", "Outbound"],
+    owner: "Eva",
+    quarter: "Q2 2026",
+    status: "Planned",
+    deadline: "",
+    description: "Q2 sales enablement and slide 2 goal work to establish the new Mesh brand positioning.",
+  },
+  {
+    id: createId(),
+    name: "New Mesh Pitch Deck",
+    type: "Other Sales Collateral",
+    channels: ["Outbound"],
+    owner: "Neal",
+    quarter: "Q2 2026",
+    status: "Planned",
+    deadline: "2026-05-31",
+    description: "Q2 sales enablement item for the new Mesh pitch deck.",
+  },
+  {
+    id: createId(),
+    name: "Brand Messaging Documentation and Guidelines",
+    type: "Strategic Initiative",
+    channels: ["Inbound", "Outbound"],
+    owner: "Eva",
+    quarter: "Q2 2026",
+    status: "Planned",
+    deadline: "",
+    description: "Slide 2 goal to deliver new brand messaging documentation and brand guidelines by April 30, 2026.",
+  },
+  {
+    id: createId(),
+    name: "New Website and P1 Brand Assets",
+    type: "Website Only",
+    channels: ["Inbound"],
+    owner: "Eva",
+    quarter: "Q2 2026",
+    status: "Planned",
+    deadline: "2026-06-30",
+    description: "Slide 2 goal to update the website and priority-one brand assets by June 30, 2026.",
+  },
+  {
+    id: createId(),
+    name: "Marketing Center of Excellence Playbook and SOP",
+    type: "Strategic Initiative",
+    channels: ["Inbound", "Outbound"],
+    owner: "Eva",
+    quarter: "Q2 2026",
+    status: "Planned",
+    deadline: "",
+    description: "Slide 2 goal to deliver an updated Marketing Center of Excellence playbook and SOP by June 30, 2026.",
+  },
+  {
+    id: createId(),
+    name: "MeshInsights Webinar",
+    type: "Webinars",
+    channels: ["Inbound", "Events"],
+    owner: "Kelly",
+    quarter: "Q2 2026",
+    status: "Planned",
+    deadline: "2026-04-30",
+    description: "Q2 content plan includes a MeshInsights webinar in April.",
+  },
+  {
+    id: createId(),
+    name: "Exein and DigiCert Webinar",
+    type: "Webinars",
+    channels: ["Events", "Referrals"],
+    owner: "Kelly",
+    quarter: "Q2 2026",
+    status: "Planned",
+    deadline: "2026-06-30",
+    description: "Q2 content plan includes an Exein/DigiCert webinar in June.",
+  },
+  {
+    id: createId(),
+    name: "F'real Case Study",
+    type: "Case Studies",
+    channels: ["Inbound"],
+    owner: "Eva",
+    quarter: "Q2 2026",
+    status: "Planned",
+    deadline: "2026-04-30",
+    description: "Q2 content plan lists a F'real case study in April.",
+  },
+  {
+    id: createId(),
+    name: "American Crane Case Study",
+    type: "Case Studies",
+    channels: ["Inbound"],
+    owner: "Eva",
+    quarter: "Q2 2026",
+    status: "Planned",
+    deadline: "2026-05-31",
+    description: "Q2 content plan lists an American Crane case study in May.",
+  },
+];
+
+const state = {
+  initiatives: loadInitiatives(),
+  requests: loadRequests(),
+  goalsHtml: loadGoalsHtml(),
+  filters: {
+    quarter: "All Quarters",
+    channels: [],
+    owner: "All Owners",
+    status: "All Statuses",
+  },
+  activeView: "roadmap",
+  sortMode: "default",
+  expandedQuarters: [],
+  editingId: null,
+  convertingRequestId: null,
+};
+
+const elements = {
+  addButton: document.querySelector("#add-initiative-button"),
+  clearFiltersButton: document.querySelector("#clear-filters-button"),
+  quarterFilter: document.querySelector("#quarter-filter"),
+  channelFilterGroup: document.querySelector("#channel-filter-group"),
+  ownerFilter: document.querySelector("#owner-filter"),
+  statusFilter: document.querySelector("#status-filter"),
+  snapshotQuarterLabel: document.querySelector("#snapshot-quarter-label"),
+  snapshotMetrics: document.querySelector("#snapshot-metrics"),
+  statusBreakdown: document.querySelector("#status-breakdown"),
+  tabButtons: document.querySelectorAll(".tab-button"),
+  sortSelect: document.querySelector("#column-sort"),
+  sortControl: document.querySelector("#sort-control"),
+  roadmapView: document.querySelector("#roadmap-view"),
+  calendarView: document.querySelector("#calendar-view"),
+  socialView: document.querySelector("#social-view"),
+  goalsView: document.querySelector("#goals-view"),
+  requestsView: document.querySelector("#requests-view"),
+  dialog: document.querySelector("#initiative-dialog"),
+  dialogTitle: document.querySelector("#dialog-title"),
+  closeDialogButton: document.querySelector("#close-dialog-button"),
+  cancelButton: document.querySelector("#cancel-button"),
+  initiativeDeadlineField: document.querySelector("#initiative-deadline-field"),
+  eventDateFields: document.querySelector("#event-date-fields"),
+  openRequestFormButton: document.querySelector("#open-request-form-button"),
+  requestDialog: document.querySelector("#request-dialog"),
+  requestForm: document.querySelector("#request-form"),
+  closeRequestDialogButton: document.querySelector("#close-request-dialog-button"),
+  cancelRequestButton: document.querySelector("#cancel-request-button"),
+  requestQuarterEditor: document.querySelector("#request-quarter"),
+  requestChannelEditorGrid: document.querySelector("#request-channel-options"),
+  requestSelectionError: document.querySelector("#request-selection-error"),
+  requestDetailsDialog: document.querySelector("#request-details-dialog"),
+  requestDetailsTitle: document.querySelector("#request-details-title"),
+  requestDetailsChipRow: document.querySelector("#request-details-chip-row"),
+  requestDetailsMeta: document.querySelector("#request-details-meta"),
+  requestDetailsDescription: document.querySelector("#request-details-description"),
+  closeRequestDetailsButton: document.querySelector("#close-request-details-button"),
+  requestDetailsCloseButton: document.querySelector("#request-details-close-button"),
+  requestConvertButton: document.querySelector("#request-convert-button"),
+  requestDeleteButton: document.querySelector("#request-delete-button"),
+  detailsDialog: document.querySelector("#details-dialog"),
+  detailsTitle: document.querySelector("#details-title"),
+  detailsChipRow: document.querySelector("#details-chip-row"),
+  detailsMeta: document.querySelector("#details-meta"),
+  detailsDescription: document.querySelector("#details-description"),
+  closeDetailsButton: document.querySelector("#close-details-button"),
+  detailsCloseButton: document.querySelector("#details-close-button"),
+  detailsEditButton: document.querySelector("#details-edit-button"),
+  initiativeDeleteButton: document.querySelector("#initiative-delete-button"),
+  form: document.querySelector("#initiative-form"),
+  typeEditor: document.querySelector("#initiative-type"),
+  quarterEditor: document.querySelector("#initiative-quarter"),
+  channelEditorGrid: document.querySelector("#initiative-channel-options"),
+  channelSelectionError: document.querySelector("#channel-selection-error"),
+  cardTemplate: document.querySelector("#initiative-card-template"),
+};
+
+initialize();
+
+function initialize() {
+  bindEvents();
+  render();
+}
+
+function bindEvents() {
+  elements.addButton.addEventListener("click", () => openDialog());
+  elements.openRequestFormButton.addEventListener("click", openRequestDialog);
+  elements.clearFiltersButton.addEventListener("click", clearFilters);
+  elements.closeDialogButton.addEventListener("click", closeDialog);
+  elements.cancelButton.addEventListener("click", closeDialog);
+  elements.closeRequestDialogButton.addEventListener("click", closeRequestDialog);
+  elements.cancelRequestButton.addEventListener("click", closeRequestDialog);
+  elements.closeRequestDetailsButton.addEventListener("click", closeRequestDetailsDialog);
+  elements.requestDetailsCloseButton.addEventListener("click", closeRequestDetailsDialog);
+  elements.requestConvertButton.addEventListener("click", handleRequestConvert);
+  elements.requestDeleteButton.addEventListener("click", handleRequestDelete);
+  elements.closeDetailsButton.addEventListener("click", closeDetailsDialog);
+  elements.detailsCloseButton.addEventListener("click", closeDetailsDialog);
+  elements.detailsEditButton.addEventListener("click", handleDetailsEdit);
+  elements.initiativeDeleteButton.addEventListener("click", handleInitiativeDelete);
+
+  elements.quarterFilter.addEventListener("change", handleSingleFilterChange);
+  elements.ownerFilter.addEventListener("change", handleSingleFilterChange);
+  elements.statusFilter.addEventListener("change", handleSingleFilterChange);
+  elements.channelFilterGroup.addEventListener("change", handleChannelFilterChange);
+  elements.sortSelect.addEventListener("change", handleSortChange);
+  elements.typeEditor.addEventListener("change", handleTypeEditorChange);
+  elements.channelEditorGrid.addEventListener("change", () => {
+    elements.channelSelectionError.hidden = getSelectedEditorChannels().length > 0;
+  });
+  elements.requestChannelEditorGrid.addEventListener("change", () => {
+    elements.requestSelectionError.hidden = getSelectedRequestChannels().length > 0;
+  });
+
+  elements.tabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeView = button.dataset.view;
+      renderViews();
+      syncTabs();
+    });
+  });
+
+  elements.form.addEventListener("submit", handleFormSubmit);
+  elements.requestForm.addEventListener("submit", handleRequestFormSubmit);
+}
+
+function render() {
+  if (!WORKSPACE_VIEWS.includes(state.activeView)) {
+    state.activeView = "roadmap";
+  }
+  populateEditorTypeOptions();
+  populateQuarterOptions();
+  populateFilterOptions();
+  populateChannelFilters();
+  populateEditorChannelOptions();
+  populateRequestQuarterOptions();
+  syncFilters();
+  syncSort();
+  renderSnapshot();
+  renderViews();
+  syncTabs();
+}
+
+function populateEditorTypeOptions() {
+  setSelectOptions(elements.typeEditor, TYPE_OPTIONS[0], TYPE_OPTIONS, false);
+}
+
+function populateQuarterOptions() {
+  const quarters = getAvailableQuarters();
+  setSelectOptions(elements.quarterEditor, getFocusedQuarter(state.initiatives), quarters, false);
+}
+
+function populateRequestQuarterOptions() {
+  const quarters = getAvailableQuarters();
+  setSelectOptions(elements.requestQuarterEditor, getFocusedQuarter(state.initiatives), quarters, false);
+}
+
+function populateFilterOptions() {
+  const quarters = getAvailableQuarters().filter((quarter) => quarter !== "Q4 2025");
+  const statuses = ["Planned", "In Progress", "At Risk", "Complete"];
+
+  setSelectOptions(elements.quarterFilter, "All Quarters", quarters, true);
+  setSelectOptions(elements.ownerFilter, "All Owners", OWNERS, true);
+  setSelectOptions(elements.statusFilter, "All Statuses", statuses, true);
+}
+
+function populateChannelFilters() {
+  elements.channelFilterGroup.replaceChildren(
+    ...CHANNELS.map((channel) => createChannelCheckbox(channel, state.filters.channels.includes(channel), "filter"))
+  );
+}
+
+function populateEditorChannelOptions() {
+  const selectedChannels = state.editingId
+    ? getInitiativeById(state.editingId).channels
+    : getSelectedEditorChannels();
+
+  elements.channelEditorGrid.replaceChildren(
+    ...CHANNELS.map((channel) => createChannelCheckbox(channel, selectedChannels.includes(channel), "editor"))
+  );
+}
+
+function createChannelCheckbox(channel, checked, context) {
+  const label = document.createElement("label");
+  label.className = context === "filter" ? "channel-filter-pill" : "channel-editor-option";
+
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.value = channel;
+  input.checked = checked;
+  input.dataset.context = context;
+  input.name = context === "filter" ? "filter-channel" : "channels";
+
+  const text = document.createElement("span");
+  text.textContent = channel;
+
+  label.append(input, text);
+  return label;
+}
+
+function syncFilters() {
+  elements.quarterFilter.value = state.filters.quarter;
+  elements.ownerFilter.value = state.filters.owner;
+  elements.statusFilter.value = state.filters.status;
+  elements.channelFilterGroup.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+    input.checked = state.filters.channels.includes(input.value);
+  });
+}
+
+function syncSort() {
+  elements.sortSelect.value = state.sortMode;
+}
+
+function handleSingleFilterChange(event) {
+  const { id, value } = event.target;
+
+  if (id === "quarter-filter") {
+    state.filters.quarter = value;
+  }
+  if (id === "owner-filter") {
+    state.filters.owner = value;
+  }
+  if (id === "status-filter") {
+    state.filters.status = value;
+  }
+
+  render();
+}
+
+function handleChannelFilterChange() {
+  state.filters.channels = getCheckedValues(elements.channelFilterGroup);
+  render();
+}
+
+function handleSortChange(event) {
+  state.sortMode = event.target.value;
+  renderViews();
+}
+
+function clearFilters() {
+  state.filters = {
+    quarter: "All Quarters",
+    channels: [],
+    owner: "All Owners",
+    status: "All Statuses",
+  };
+  render();
+}
+
+function getFilteredInitiatives() {
+  return state.initiatives.filter((item) => {
+    const quarterMatch = state.filters.quarter === "All Quarters" || item.quarter === state.filters.quarter;
+    const channelMatch =
+      state.filters.channels.length === 0 ||
+      item.channels.some((channel) => state.filters.channels.includes(channel));
+    const ownerMatch = state.filters.owner === "All Owners" || item.owner === state.filters.owner;
+    const statusMatch = state.filters.status === "All Statuses" || item.status === state.filters.status;
+
+    return quarterMatch && channelMatch && ownerMatch && statusMatch;
+  });
+}
+
+function renderSnapshot() {
+  const filtered = getFilteredInitiatives();
+  const snapshotScope = state.filters.quarter === "All Quarters" ? "All quarters" : state.filters.quarter;
+  elements.snapshotQuarterLabel.textContent = snapshotScope;
+
+  const inProgressCount = filtered.filter((item) => item.status === "In Progress").length;
+  const atRiskCount = filtered.filter((item) => item.status === "At Risk").length;
+  const completeCount = filtered.filter((item) => item.status === "Complete").length;
+
+  elements.snapshotMetrics.innerHTML = "";
+  [
+    { label: "Total initiatives", value: filtered.length },
+    { label: "Active now", value: inProgressCount + atRiskCount },
+    { label: "At risk", value: atRiskCount },
+    { label: "Complete", value: completeCount },
+  ].forEach((metric) => {
+    const card = document.createElement("article");
+    card.className = "metric-card";
+    card.innerHTML = `
+      <span class="metric-label">${metric.label}</span>
+      <span class="metric-value">${metric.value}</span>
+    `;
+    elements.snapshotMetrics.append(card);
+  });
+
+  const statusStack = document.createElement("div");
+  statusStack.className = "status-stack";
+  ["Planned", "In Progress", "At Risk", "Complete"].forEach((status) => {
+    const count = filtered.filter((item) => item.status === status).length;
+    const chip = document.createElement("div");
+    chip.className = "status-chip";
+    chip.innerHTML = `
+      <div>
+        <strong>${status}</strong>
+        <small>${count} initiatives</small>
+      </div>
+      <span class="status-label" style="color:${STATUS_CONFIG[status].color}">${count}</span>
+    `;
+    statusStack.append(chip);
+  });
+  elements.statusBreakdown.replaceChildren(statusStack);
+}
+
+function renderViews() {
+  renderRoadmapView();
+  renderCalendarView();
+  renderSocialView();
+  renderGoalsView();
+  renderRequestsView();
+
+  document.querySelectorAll(".view-section").forEach((section) => {
+    section.classList.toggle("active", section.id === `${state.activeView}-view`);
+  });
+}
+
+function renderRoadmapView() {
+  const filtered = getFilteredInitiatives().sort(sortByQuarterThenName);
+  const quarters = uniqueValues(filtered.map((item) => item.quarter));
+  const grid = document.createElement("div");
+  grid.className = "roadmap-grid";
+
+  if (quarters.length === 0) {
+    grid.append(createEmptyState("No initiatives match the current filters."));
+  } else {
+    const expandedQuarters = getExpandedQuarterSet(quarters);
+    quarters.forEach((quarter) => {
+      const column = document.createElement("section");
+      column.className = "quarter-column";
+      const isExpanded = expandedQuarters.has(quarter);
+      const initiatives = sortItemsForColumn(filtered.filter((item) => item.quarter === quarter));
+      column.classList.toggle("collapsed", !isExpanded);
+      column.innerHTML = `
+        <header class="quarter-header">
+          <div class="quarter-toggle" aria-expanded="${isExpanded}">
+            <span class="quarter-heading-group">
+              <span class="quarter-heading">${quarter}</span>
+              <span class="quarter-count">${initiatives.length} items</span>
+            </span>
+            <button class="quarter-action" type="button">${isExpanded ? "Collapse" : "Expand"}</button>
+          </div>
+        </header>
+      `;
+      column.querySelector(".quarter-action").addEventListener("click", () => toggleQuarter(quarter));
+      if (isExpanded) {
+        column.append(renderCardStack(initiatives));
+      }
+      grid.append(column);
+    });
+  }
+
+  elements.roadmapView.replaceChildren(grid);
+}
+
+function renderCalendarView() {
+  const filtered = getFilteredInitiatives().filter((item) => CONTENT_TYPES.includes(item.type));
+  const activeQuarter = getFocusedQuarter(filtered);
+  const [quarterKey] = activeQuarter.split(" ");
+  const baseMonths = QUARTER_MONTHS[quarterKey];
+  const grid = document.createElement("div");
+  grid.className = "calendar-grid";
+
+  if (!baseMonths) {
+    grid.append(createEmptyState("Select a specific quarter or use the standard Q1-Q4 YYYY format."));
+    elements.calendarView.replaceChildren(grid);
+    return;
+  }
+
+  baseMonths.forEach((month) => {
+    const monthSection = document.createElement("section");
+    monthSection.className = "calendar-month";
+
+    const items = filtered
+      .filter((item) => item.quarter === activeQuarter)
+      .filter((item) => getItemMonthLabel(item) === month)
+      .sort(getColumnSort());
+
+    monthSection.innerHTML = `
+      <header>
+        <h2>${month}</h2>
+        <p>${items.length} items</p>
+      </header>
+    `;
+
+    if (items.length === 0) {
+      monthSection.append(createEmptyState("No planned content in this month yet."));
+    } else {
+      monthSection.append(renderCardStack(items));
+    }
+
+    grid.append(monthSection);
+  });
+
+  elements.calendarView.replaceChildren(grid);
+}
+
+function renderSocialView() {
+  const filtered = getFilteredInitiatives().filter((item) => item.type === SOCIAL_TYPE);
+  const activeQuarter = getFocusedQuarter(filtered);
+  const [quarterKey] = activeQuarter.split(" ");
+  const baseMonths = QUARTER_MONTHS[quarterKey];
+  const grid = document.createElement("div");
+  grid.className = "calendar-grid";
+
+  if (!baseMonths) {
+    grid.append(createEmptyState("Select a specific quarter or use the standard Q1-Q4 YYYY format."));
+    elements.socialView.replaceChildren(grid);
+    return;
+  }
+
+  baseMonths.forEach((month) => {
+    const monthSection = document.createElement("section");
+    monthSection.className = "calendar-month";
+
+    const items = filtered
+      .filter((item) => item.quarter === activeQuarter)
+      .filter((item) => getItemMonthLabel(item) === month)
+      .sort(getColumnSort());
+
+    monthSection.innerHTML = `
+      <header>
+        <h2>${month}</h2>
+        <p>${items.length} posts</p>
+      </header>
+    `;
+
+    if (items.length === 0) {
+      monthSection.append(createEmptyState("No planned social posts in this month yet."));
+    } else {
+      monthSection.append(renderCardStack(items));
+    }
+
+    grid.append(monthSection);
+  });
+
+  elements.socialView.replaceChildren(grid);
+}
+
+function renderGoalsView() {
+  const wrapper = document.createElement("section");
+  wrapper.className = "goals-panel";
+  wrapper.innerHTML = `
+    <div class="goals-editor-shell">
+      <div class="goals-editor-toolbar">
+        <button class="ghost-button" type="button" data-command="bold">Bold</button>
+        <button class="ghost-button" type="button" data-command="italic">Italic</button>
+        <button class="ghost-button" type="button" data-command="insertUnorderedList">Bullets</button>
+        <button class="ghost-button" type="button" data-command="insertOrderedList">Numbers</button>
+        <button class="ghost-button" type="button" data-command="formatBlock" data-value="h3">Heading</button>
+      </div>
+      <div class="goals-editor" id="goals-editor" contenteditable="true" spellcheck="true"></div>
+    </div>
+  `;
+  elements.goalsView.replaceChildren(wrapper);
+
+  const editor = wrapper.querySelector("#goals-editor");
+  editor.innerHTML = state.goalsHtml;
+
+  wrapper.querySelector(".goals-editor-toolbar").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-command]");
+    if (!button) {
+      return;
+    }
+    event.preventDefault();
+    editor.focus();
+    document.execCommand(button.dataset.command, false, button.dataset.value || null);
+    state.goalsHtml = editor.innerHTML;
+    persistGoalsHtml();
+  });
+
+  editor.addEventListener("input", () => {
+    state.goalsHtml = editor.innerHTML;
+    persistGoalsHtml();
+  });
+}
+
+function renderRequestsView() {
+  const requests = getFilteredRequests();
+  const wrapper = document.createElement("section");
+  wrapper.className = "requests-panel";
+
+  const summary = document.createElement("section");
+  summary.className = "requests-summary";
+  summary.innerHTML = `
+    <div>
+      <h2>Marketing Request Intake</h2>
+      <p>Catalog new asks before they become active initiatives.</p>
+    </div>
+    <span class="request-count">${requests.length} requests</span>
+  `;
+  wrapper.append(summary);
+
+  if (requests.length === 0) {
+    wrapper.append(createEmptyState("No requests match the current quarter or channel filters."));
+    elements.requestsView.replaceChildren(wrapper);
+    return;
+  }
+
+  const grid = document.createElement("div");
+  grid.className = "requests-grid";
+  requests.forEach((request) => {
+    grid.append(createRequestCard(request));
+  });
+  wrapper.append(grid);
+  elements.requestsView.replaceChildren(wrapper);
+}
+
+function renderCardStack(items) {
+  const stack = document.createElement("div");
+  stack.className = "initiative-stack";
+
+  items.forEach((item) => {
+    stack.append(createInitiativeCard(item));
+  });
+
+  return stack;
+}
+
+function createInitiativeCard(item) {
+  const fragment = elements.cardTemplate.content.cloneNode(true);
+  const card = fragment.querySelector(".initiative-card");
+  const config = STATUS_CONFIG[item.status];
+  const channelBadge = fragment.querySelector(".channel-badge");
+
+  fragment.querySelector(".type-badge").textContent = item.type;
+  channelBadge.textContent = getChannelBadgeSummary(item.channels);
+  fragment.querySelector(".card-title").textContent = item.name;
+  fragment.querySelector(".owner-pill").textContent = item.owner;
+  fragment.querySelector(".deadline-pill").textContent = getDateBadgeLabel(item);
+  fragment.querySelector(".status-fill").style.background = config.color;
+  fragment.querySelector(".status-fill").style.width = config.width;
+  fragment.querySelector(".status-label").textContent = item.status;
+  fragment.querySelector(".status-label").style.color = config.color;
+  const editButton = fragment.querySelector(".card-edit-button");
+  editButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    openDialog(item.id);
+  });
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", `Open details for ${item.name}`);
+  card.addEventListener("click", () => openDetailsDialog(item.id));
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openDetailsDialog(item.id);
+    }
+  });
+
+  card.dataset.id = item.id;
+  return fragment;
+}
+
+function syncTabs() {
+  elements.tabButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.view === state.activeView);
+  });
+  elements.sortControl.hidden = state.activeView === "goals";
+}
+
+function openDialog(id = null, requestId = null) {
+  state.editingId = id;
+  state.convertingRequestId = requestId;
+  elements.form.reset();
+  elements.channelSelectionError.hidden = true;
+  elements.channelSelectionError.textContent = "Select at least one channel.";
+  populateEditorTypeOptions();
+  populateQuarterOptions();
+
+  const nameField = getField("name");
+  const typeField = getField("type");
+  const ownerField = getField("owner");
+  const quarterField = getField("quarter");
+  const statusField = getField("status");
+  const deadlineField = getField("deadline");
+  const startDateField = getField("startDate");
+  const endDateField = getField("endDate");
+  const descriptionField = getField("description");
+
+  if (id) {
+    const item = getInitiativeById(id);
+    elements.dialogTitle.textContent = "Edit Initiative";
+    nameField.value = item.name;
+    typeField.value = item.type;
+    ownerField.value = item.owner;
+    quarterField.value = item.quarter;
+    statusField.value = item.status;
+    deadlineField.value = item.deadline;
+    startDateField.value = item.startDate || "";
+    endDateField.value = item.endDate || "";
+    descriptionField.value = item.description;
+    populateEditorChannelOptions();
+    syncEditorChannels(item.channels);
+  } else if (requestId) {
+    const request = getRequestById(requestId);
+    if (!request) {
+      state.convertingRequestId = null;
+      return;
+    }
+    const suggestedType = getSuggestedTypeForRequest(request);
+    elements.dialogTitle.textContent = "Convert Request to Initiative";
+    nameField.value = request.name;
+    typeField.value = suggestedType;
+    ownerField.value = OWNERS[0];
+    quarterField.value = request.quarter;
+    statusField.value = "Planned";
+    deadlineField.value = suggestedType === "Event" ? "" : request.neededBy || "";
+    startDateField.value = "";
+    endDateField.value = suggestedType === "Event" ? request.neededBy || "" : "";
+    descriptionField.value = request.notes;
+    populateEditorChannelOptions();
+    syncEditorChannels(request.channels);
+  } else {
+    elements.dialogTitle.textContent = "Create New Initiative";
+    quarterField.value = getFocusedQuarter(state.initiatives);
+    ownerField.value = OWNERS[0];
+    typeField.value = TYPE_OPTIONS[0];
+    populateEditorChannelOptions();
+  }
+
+  syncInitiativeTypeFields();
+  elements.dialog.showModal();
+}
+
+function openRequestDialog() {
+  elements.requestForm.reset();
+  elements.requestSelectionError.hidden = true;
+  populateRequestQuarterOptions();
+  populateRequestChannelOptions();
+  getRequestField("quarter").value = getFocusedQuarter(state.initiatives);
+  getRequestField("requestedDate").value = getLocalDateInputValue();
+  elements.requestDialog.showModal();
+}
+
+function closeDialog() {
+  state.editingId = null;
+  state.convertingRequestId = null;
+  elements.dialog.close();
+}
+
+function closeRequestDialog() {
+  elements.requestDialog.close();
+}
+
+function openRequestDetailsDialog(id) {
+  const request = getRequestById(id);
+  if (!request) {
+    return;
+  }
+
+  elements.requestDetailsDialog.dataset.id = id;
+  elements.requestDetailsTitle.textContent = request.name;
+  elements.requestDetailsChipRow.innerHTML = "";
+
+  ["New Request", ...request.channels].forEach((label, index) => {
+    const badge = document.createElement("span");
+    badge.className = index === 0 ? "type-badge" : "channel-badge";
+    badge.textContent = label;
+    elements.requestDetailsChipRow.append(badge);
+  });
+
+  elements.requestDetailsMeta.innerHTML = `
+    <div class="detail-meta-item">
+      <span>Requested By</span>
+      <strong>${request.requestedBy}</strong>
+    </div>
+    <div class="detail-meta-item">
+      <span>Target Quarter</span>
+      <strong>${request.quarter}</strong>
+    </div>
+    <div class="detail-meta-item">
+      <span>Requested On</span>
+      <strong>${request.requestedDate ? formatDate(request.requestedDate) : "Not set"}</strong>
+    </div>
+    <div class="detail-meta-item">
+      <span>Requested Due Date</span>
+      <strong>${request.neededBy ? formatDate(request.neededBy) : "Not set"}</strong>
+    </div>
+  `;
+  elements.requestDetailsDescription.textContent = request.notes || "No additional request details provided.";
+  elements.requestDetailsDialog.showModal();
+}
+
+function closeRequestDetailsDialog() {
+  elements.requestDetailsDialog.close();
+}
+
+function openDetailsDialog(id) {
+  const item = getInitiativeById(id);
+  if (!item) {
+    return;
+  }
+
+  elements.detailsDialog.dataset.id = id;
+  elements.detailsTitle.textContent = item.name;
+  elements.detailsChipRow.innerHTML = "";
+
+  [item.type, ...item.channels].forEach((label) => {
+    const badge = document.createElement("span");
+    badge.className = label === item.type ? "type-badge" : "channel-badge";
+    badge.textContent = label;
+    elements.detailsChipRow.append(badge);
+  });
+
+  elements.detailsMeta.innerHTML = `
+    <div class="detail-meta-item">
+      <span>Owner</span>
+      <strong>${item.owner}</strong>
+    </div>
+    <div class="detail-meta-item">
+      <span>Quarter</span>
+      <strong>${item.quarter}</strong>
+    </div>
+    <div class="detail-meta-item">
+      <span>Status</span>
+      <strong style="color:${STATUS_CONFIG[item.status].color}">${item.status}</strong>
+    </div>
+    <div class="detail-meta-item">
+      <span>${item.type === "Event" ? "Event Window" : "Due Date"}</span>
+      <strong>${getDetailDateLabel(item)}</strong>
+    </div>
+  `;
+  elements.detailsDescription.textContent = item.description || "No additional context provided.";
+  elements.detailsDialog.showModal();
+}
+
+function closeDetailsDialog() {
+  elements.detailsDialog.close();
+}
+
+function handleDetailsEdit() {
+  const id = elements.detailsDialog.dataset.id;
+  closeDetailsDialog();
+  openDialog(id);
+}
+
+function handleRequestConvert() {
+  const id = elements.requestDetailsDialog.dataset.id;
+  closeRequestDetailsDialog();
+  openDialog(null, id);
+}
+
+function handleRequestDelete() {
+  const id = elements.requestDetailsDialog.dataset.id;
+  const request = getRequestById(id);
+  if (!request || !window.confirm(`Delete "${request.name}"?`)) {
+    return;
+  }
+  state.requests = state.requests.filter((item) => item.id !== id);
+  persistRequests();
+  closeRequestDetailsDialog();
+  renderViews();
+}
+
+function handleTypeEditorChange() {
+  syncInitiativeTypeFields(true);
+}
+
+function handleInitiativeDelete() {
+  const id = elements.detailsDialog.dataset.id;
+  const initiative = getInitiativeById(id);
+  if (!initiative || !window.confirm(`Delete "${initiative.name}"?`)) {
+    return;
+  }
+  state.initiatives = state.initiatives.filter((item) => item.id !== id);
+  persistInitiatives();
+  closeDetailsDialog();
+  render();
+}
+
+function handleFormSubmit(event) {
+  event.preventDefault();
+
+  const channels = getSelectedEditorChannels();
+  if (channels.length === 0) {
+    elements.channelSelectionError.hidden = false;
+    return;
+  }
+
+  const formData = new FormData(elements.form);
+  const type = formData.get("type").toString();
+  const deadline = type === "Event" ? "" : formData.get("deadline").toString();
+  const startDate = type === "Event" ? formData.get("startDate").toString() : "";
+  const endDate = type === "Event" ? formData.get("endDate").toString() : "";
+  const effectiveDeadline = type === "Event" ? endDate : deadline;
+  if (type === "Event" && (!startDate || !endDate)) {
+    elements.channelSelectionError.hidden = false;
+    elements.channelSelectionError.textContent = "Set both event start and end dates.";
+    return;
+  }
+  if (type !== "Strategic Initiative" && type !== "Event" && !deadline) {
+    elements.channelSelectionError.hidden = false;
+    elements.channelSelectionError.textContent = "Set a due date for scheduled work.";
+    return;
+  }
+  elements.channelSelectionError.hidden = true;
+  elements.channelSelectionError.textContent = "Select at least one channel.";
+  const nextItem = {
+    id: state.editingId || createId(),
+    name: formData.get("name").toString().trim(),
+    type,
+    channels,
+    owner: formData.get("owner").toString(),
+    quarter: formData.get("quarter").toString(),
+    status: formData.get("status").toString(),
+    deadline: effectiveDeadline,
+    startDate,
+    endDate,
+    description: formData.get("description").toString().trim(),
+  };
+
+  if (state.editingId) {
+    state.initiatives = state.initiatives.map((item) => (item.id === state.editingId ? nextItem : item));
+  } else {
+    state.initiatives = [nextItem, ...state.initiatives];
+  }
+
+  if (state.convertingRequestId) {
+    state.requests = state.requests.filter((item) => item.id !== state.convertingRequestId);
+    persistRequests();
+  }
+
+  persistInitiatives();
+  closeDialog();
+  render();
+}
+
+function handleRequestFormSubmit(event) {
+  event.preventDefault();
+
+  const channels = getSelectedRequestChannels();
+  if (channels.length === 0) {
+    elements.requestSelectionError.hidden = false;
+    return;
+  }
+
+  const formData = new FormData(elements.requestForm);
+  const request = {
+    id: createId(),
+    name: formData.get("name").toString().trim(),
+    requestedBy: formData.get("requestedBy").toString().trim(),
+    quarter: formData.get("quarter").toString(),
+    requestedDate: formData.get("requestedDate").toString(),
+    neededBy: formData.get("neededBy").toString(),
+    channels,
+    notes: formData.get("notes").toString().trim(),
+  };
+
+  state.requests = [request, ...state.requests];
+  persistRequests();
+  closeRequestDialog();
+  state.activeView = "requests";
+  render();
+}
+
+function loadInitiatives() {
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return normalizeInitiatives(JSON.parse(saved));
+    }
+  } catch (error) {
+    return defaultInitiatives;
+  }
+
+  return defaultInitiatives;
+}
+
+function persistInitiatives() {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.initiatives));
+}
+
+function loadRequests() {
+  try {
+    const saved = window.localStorage.getItem(REQUESTS_STORAGE_KEY);
+    if (saved) {
+      return normalizeRequests(JSON.parse(saved));
+    }
+  } catch (error) {
+    return [];
+  }
+
+  return [];
+}
+
+function loadGoalsHtml() {
+  try {
+    const saved = window.localStorage.getItem(GOALS_STORAGE_KEY);
+    if (saved) {
+      return saved;
+    }
+  } catch (error) {
+    return buildDefaultGoalsHtml();
+  }
+
+  return buildDefaultGoalsHtml();
+}
+
+function persistRequests() {
+  window.localStorage.setItem(REQUESTS_STORAGE_KEY, JSON.stringify(state.requests));
+}
+
+function persistGoalsHtml() {
+  window.localStorage.setItem(GOALS_STORAGE_KEY, state.goalsHtml);
+}
+
+function normalizeInitiatives(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return defaultInitiatives;
+  }
+
+  return items.map((item) => {
+    const channels = normalizeChannels(item.channels ?? item.channel);
+    const type = normalizeType(item.type, item.name);
+    const deadline = typeof item.deadline === "string" ? item.deadline : "";
+    const startDate = typeof item.startDate === "string" ? item.startDate : "";
+    const endDate = typeof item.endDate === "string" ? item.endDate : type === "Event" ? deadline : "";
+    return {
+      id: item.id || createId(),
+      name: item.name || "Untitled initiative",
+      type,
+      channels,
+      owner: normalizeOwner(item.owner),
+      quarter: parseQuarterLabel(item.quarter) ? item.quarter : getCurrentQuarterLabel(),
+      status: STATUS_CONFIG[item.status] ? item.status : "Planned",
+      deadline,
+      startDate,
+      endDate,
+      description: typeof item.description === "string" ? item.description : "",
+    };
+  });
+}
+
+function normalizeRequests(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return [];
+  }
+
+  return items.map((item) => ({
+    id: item.id || createId(),
+    name: typeof item.name === "string" && item.name.trim() ? item.name.trim() : "Untitled request",
+    requestedBy:
+      typeof item.requestedBy === "string" && item.requestedBy.trim() ? item.requestedBy.trim() : "Unknown",
+    quarter: parseQuarterLabel(item.quarter) ? item.quarter : getCurrentQuarterLabel(),
+    requestedDate: typeof item.requestedDate === "string" ? item.requestedDate : "",
+    neededBy: typeof item.neededBy === "string" ? item.neededBy : "",
+    channels: normalizeChannels(item.channels ?? item.channel),
+    notes: typeof item.notes === "string" ? item.notes : "",
+  }));
+}
+
+function normalizeChannels(value) {
+  if (Array.isArray(value)) {
+    const valid = value.filter((channel) => CHANNELS.includes(channel));
+    return valid.length ? valid : [CHANNELS[0]];
+  }
+
+  if (typeof value === "string") {
+    if (CHANNELS.includes(value)) {
+      return [value];
+    }
+    if (value === "Multi-channel") {
+      return ["Inbound", "Outbound"];
+    }
+  }
+
+  return [CHANNELS[0]];
+}
+
+function normalizeOwner(owner) {
+  if (OWNERS.includes(owner)) {
+    return owner;
+  }
+  if (OWNER_MIGRATION[owner]) {
+    return OWNER_MIGRATION[owner];
+  }
+  return OWNERS[0];
+}
+
+function normalizeType(type, name = "") {
+  if (TYPE_OPTIONS.includes(type)) {
+    return type;
+  }
+
+  if (type === "Website/Landing Pages") {
+    return "Website Only";
+  }
+
+  if (type === "Initiative" || type === "Campaign") {
+    return "Strategic Initiative";
+  }
+
+  if (type === "Event") {
+    return "Event";
+  }
+
+  if (type === "Content") {
+    return inferContentType(name);
+  }
+
+  return inferContentType(name);
+}
+
+function inferContentType(name = "") {
+  const lower = name.toLowerCase();
+  if (lower.includes("linkedin") || lower.includes("social") || lower.includes("post")) {
+    return "Social Posts";
+  }
+  if (lower.includes("website") || lower.includes("landing")) {
+    return "Website Only";
+  }
+  if (lower.includes("blog")) {
+    return "Blog Posts";
+  }
+  if (lower.includes("ebook") || lower.includes("guide")) {
+    return "Ebooks/Guides";
+  }
+  if (lower.includes("webinar")) {
+    return "Webinars";
+  }
+  if (lower.includes("video")) {
+    return "Video";
+  }
+  if (lower.includes("case study")) {
+    return "Case Studies";
+  }
+  return "Other Sales Collateral";
+}
+
+function setSelectOptions(select, defaultLabel, values, includeDefault) {
+  const currentValue = select.value || defaultLabel;
+  select.innerHTML = "";
+
+  if (includeDefault) {
+    const defaultOption = document.createElement("option");
+    defaultOption.value = defaultLabel;
+    defaultOption.textContent = defaultLabel;
+    select.append(defaultOption);
+  }
+
+  values.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.append(option);
+  });
+
+  const validCurrent = values.includes(currentValue) || (includeDefault && currentValue === defaultLabel);
+  select.value = validCurrent ? currentValue : includeDefault ? defaultLabel : values[0];
+}
+
+function getCheckedValues(container) {
+  return [...container.querySelectorAll('input[type="checkbox"]:checked')].map((input) => input.value);
+}
+
+function getSelectedEditorChannels() {
+  return getCheckedValues(elements.channelEditorGrid);
+}
+
+function getSelectedRequestChannels() {
+  return getCheckedValues(elements.requestChannelEditorGrid);
+}
+
+function syncEditorChannels(channels) {
+  elements.channelEditorGrid.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+    input.checked = channels.includes(input.value);
+  });
+}
+
+function syncInitiativeTypeFields(clearHiddenValues = false) {
+  const isEvent = elements.typeEditor.value === "Event";
+  const requiresDeadline = !["Strategic Initiative", "Event"].includes(elements.typeEditor.value);
+  elements.eventDateFields.hidden = !isEvent;
+  elements.initiativeDeadlineField.hidden = isEvent;
+
+  const startDateField = getField("startDate");
+  const endDateField = getField("endDate");
+  const deadlineField = getField("deadline");
+
+  startDateField.disabled = !isEvent;
+  endDateField.disabled = !isEvent;
+  deadlineField.disabled = isEvent;
+  startDateField.required = isEvent;
+  endDateField.required = isEvent;
+  deadlineField.required = requiresDeadline;
+
+  if (clearHiddenValues) {
+    if (isEvent) {
+      deadlineField.value = "";
+    } else {
+      startDateField.value = "";
+      endDateField.value = "";
+    }
+  }
+}
+
+function populateRequestChannelOptions() {
+  elements.requestChannelEditorGrid.replaceChildren(
+    ...CHANNELS.map((channel) => createChannelCheckbox(channel, false, "request"))
+  );
+}
+
+function getAvailableQuarters() {
+  return uniqueValues([...generateQuarterOptions(), ...state.initiatives.map((item) => item.quarter)]);
+}
+
+function generateQuarterOptions() {
+  const current = parseQuarterLabel(getCurrentQuarterLabel());
+  const options = [];
+
+  for (let offset = -1; offset <= 6; offset += 1) {
+    const total = current.year * 4 + (current.quarter - 1) + offset;
+    const year = Math.floor(total / 4);
+    const quarter = (total % 4) + 1;
+    options.push(`Q${quarter} ${year}`);
+  }
+
+  return options;
+}
+
+function uniqueValues(values) {
+  return [...new Set(values)].sort(compareQuarterAware);
+}
+
+function sortItemsForColumn(items) {
+  return [...items].sort(getColumnSort());
+}
+
+function getColumnSort() {
+  return state.sortMode === "due-date" ? sortByDeadlineThenName : sortByQuarterThenName;
+}
+
+function sortByQuarterThenName(left, right) {
+  const quarterSort = compareQuarterAware(left.quarter, right.quarter);
+  return quarterSort || left.name.localeCompare(right.name);
+}
+
+function sortByDeadlineThenName(left, right) {
+  const leftDueDate = getEffectiveDueDate(left);
+  const rightDueDate = getEffectiveDueDate(right);
+  if (!leftDueDate && !rightDueDate) {
+    return left.name.localeCompare(right.name);
+  }
+  if (!leftDueDate) {
+    return 1;
+  }
+  if (!rightDueDate) {
+    return -1;
+  }
+  return leftDueDate.localeCompare(rightDueDate) || left.name.localeCompare(right.name);
+}
+
+function formatDate(value) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatShortDate(value) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getItemMonthLabel(item) {
+  const dueDate = getEffectiveDueDate(item);
+  if (!dueDate) {
+    return null;
+  }
+  return new Date(`${dueDate}T00:00:00`).toLocaleDateString(undefined, { month: "long" });
+}
+
+function getChannelBadgeSummary(channels) {
+  if (channels.length <= 1) {
+    return channels[0] || "";
+  }
+
+  return `${channels[0]} +${channels.length - 1} more`;
+}
+
+function getCurrentQuarterLabel() {
+  const today = new Date();
+  const month = today.getMonth();
+  const quarter = `Q${Math.floor(month / 3) + 1}`;
+  return `${quarter} ${today.getFullYear()}`;
+}
+
+function getFocusedQuarter(items) {
+  if (state.filters.quarter !== "All Quarters") {
+    return state.filters.quarter;
+  }
+
+  const quarters = uniqueValues(items.map((item) => item.quarter));
+  if (quarters.length === 0) {
+    return getCurrentQuarterLabel();
+  }
+
+  const currentQuarter = getCurrentQuarterLabel();
+  const upcomingIndex = quarters.findIndex((quarter) => compareQuarterAware(quarter, currentQuarter) >= 0);
+  return upcomingIndex === -1 ? quarters[quarters.length - 1] : quarters[upcomingIndex];
+}
+
+function getExpandedQuarterSet(quarters) {
+  const visibleExpanded = state.expandedQuarters.filter((quarter) => quarters.includes(quarter));
+  if (visibleExpanded.length === 0 && quarters.length > 0) {
+    const defaultQuarter = quarters.includes(getCurrentQuarterLabel()) ? getCurrentQuarterLabel() : getFocusedQuarter(
+      state.initiatives
+    );
+    state.expandedQuarters = [quarters.includes(defaultQuarter) ? defaultQuarter : quarters[0]];
+  } else {
+    state.expandedQuarters = visibleExpanded;
+  }
+
+  return new Set(state.expandedQuarters);
+}
+
+function toggleQuarter(quarter) {
+  if (state.expandedQuarters.includes(quarter)) {
+    state.expandedQuarters = state.expandedQuarters.filter((item) => item !== quarter);
+  } else {
+    state.expandedQuarters = [...state.expandedQuarters, quarter];
+  }
+  renderViews();
+}
+
+function getEffectiveDueDate(item) {
+  return item.endDate || item.deadline || "";
+}
+
+function getDateBadgeLabel(item) {
+  if (item.type === "Event" && item.startDate && item.endDate) {
+    return `${formatShortDate(item.startDate)}-${formatShortDate(item.endDate)}`;
+  }
+  if (item.deadline) {
+    return formatDate(item.deadline);
+  }
+  return "Evergreen";
+}
+
+function getFilteredRequests() {
+  return [...state.requests]
+    .filter((item) => {
+      const quarterMatch = state.filters.quarter === "All Quarters" || item.quarter === state.filters.quarter;
+      const channelMatch =
+        state.filters.channels.length === 0 ||
+        item.channels.some((channel) => state.filters.channels.includes(channel));
+      return quarterMatch && channelMatch;
+    })
+    .sort((left, right) => {
+      if (!left.requestedDate && !right.requestedDate) {
+        return left.name.localeCompare(right.name);
+      }
+      if (!left.requestedDate) {
+        return 1;
+      }
+      if (!right.requestedDate) {
+        return -1;
+      }
+      return right.requestedDate.localeCompare(left.requestedDate) || left.name.localeCompare(right.name);
+    });
+}
+
+function createRequestCard(request) {
+  const card = document.createElement("article");
+  card.className = "request-card";
+  const dueDate = request.neededBy ? formatDate(request.neededBy) : "Not set";
+  const requestedOn = request.requestedDate ? formatDate(request.requestedDate) : "Not set";
+  card.innerHTML = `
+    <div class="request-topline">
+      <span class="type-badge">New Request</span>
+      <span class="channel-badge">${getChannelBadgeSummary(request.channels)}</span>
+    </div>
+    <h3 class="card-title">${request.name}</h3>
+    <div class="request-meta-grid">
+      <div class="detail-meta-item">
+        <span>Requested By</span>
+        <strong>${request.requestedBy}</strong>
+      </div>
+      <div class="detail-meta-item">
+        <span>Target Quarter</span>
+        <strong>${request.quarter}</strong>
+      </div>
+      <div class="detail-meta-item">
+        <span>Requested On</span>
+        <strong>${requestedOn}</strong>
+      </div>
+      <div class="detail-meta-item">
+        <span>Needed By</span>
+        <strong>${dueDate}</strong>
+      </div>
+    </div>
+    <p class="request-notes">${request.notes || "No additional request details provided."}</p>
+  `;
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", `Open request ${request.name}`);
+  card.addEventListener("click", () => openRequestDetailsDialog(request.id));
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openRequestDetailsDialog(request.id);
+    }
+  });
+  return card;
+}
+
+function getDetailDateLabel(item) {
+  if (item.type === "Event" && item.startDate && item.endDate) {
+    return `${formatDate(item.startDate)} to ${formatDate(item.endDate)}`;
+  }
+  if (item.deadline) {
+    return formatDate(item.deadline);
+  }
+  return "Not set";
+}
+
+function compareQuarterAware(left, right) {
+  const leftQuarter = parseQuarterLabel(left);
+  const rightQuarter = parseQuarterLabel(right);
+
+  if (leftQuarter && rightQuarter) {
+    return leftQuarter.year - rightQuarter.year || leftQuarter.quarter - rightQuarter.quarter;
+  }
+
+  return left.localeCompare(right, undefined, { numeric: true });
+}
+
+function parseQuarterLabel(value) {
+  const match = /^Q([1-4])\s+(\d{4})$/i.exec(value || "");
+  if (!match) {
+    return null;
+  }
+
+  return {
+    quarter: Number.parseInt(match[1], 10),
+    year: Number.parseInt(match[2], 10),
+  };
+}
+
+function getField(name) {
+  return elements.form.elements.namedItem(name);
+}
+
+function getRequestField(name) {
+  return elements.requestForm.elements.namedItem(name);
+}
+
+function getInitiativeById(id) {
+  return state.initiatives.find((initiative) => initiative.id === id);
+}
+
+function getRequestById(id) {
+  return state.requests.find((request) => request.id === id);
+}
+
+function createEmptyState(message) {
+  const element = document.createElement("div");
+  element.className = "empty-state";
+  element.textContent = message;
+  return element;
+}
+
+function createId() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+  return `initiative-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getLocalDateInputValue() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = `${today.getMonth() + 1}`.padStart(2, "0");
+  const day = `${today.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getSuggestedTypeForRequest(request) {
+  if (!request) {
+    return TYPE_OPTIONS[0];
+  }
+
+  const combined = `${request.name} ${request.notes}`.toLowerCase();
+  if (
+    combined.includes("event") ||
+    combined.includes("expo") ||
+    combined.includes("conference") ||
+    combined.includes("trade show")
+  ) {
+    return "Event";
+  }
+
+  const inferredType = inferContentType(combined);
+  return inferredType === "Other Sales Collateral" ? "Strategic Initiative" : inferredType;
+}
+
+function buildDefaultGoalsHtml() {
+  const themesHtml = GOALS_CONTENT.strategicThemes.map((item) => `<li>${item}</li>`).join("");
+  const smartGoalsHtml = GOALS_CONTENT.smartGoals
+    .map((item) => {
+      const children = item.children?.length
+        ? `<ul>${item.children.map((child) => `<li>${child}</li>`).join("")}</ul>`
+        : "";
+      return `<li>${item.title}${children}</li>`;
+    })
+    .join("");
+
+  return `
+    <p>${GOALS_CONTENT.intro}</p>
+    <h3>Strategic Themes</h3>
+    <ul>${themesHtml}</ul>
+    <h3>SMART Goals</h3>
+    <ul>${smartGoalsHtml}</ul>
+  `.trim();
+}

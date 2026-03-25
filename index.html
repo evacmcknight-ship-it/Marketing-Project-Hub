@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Marketing Team Project Hub</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div class="hero-brand">
+          <img
+            class="brand-logo"
+            src="mesh-systems-logo.png"
+            alt="Mesh Systems"
+            width="462"
+            height="53"
+          />
+          <div class="hero-copy">
+            <h1>Marketing Team Project Hub</h1>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <button class="primary-button" id="add-initiative-button" type="button">
+            Create New Initiative
+          </button>
+          <button class="ghost-button" id="open-request-form-button" type="button">
+            Request Form for Marketing
+          </button>
+        </div>
+      </header>
+
+      <main class="dashboard-grid">
+        <aside class="sidebar-panel">
+          <section class="panel filters-panel">
+            <div class="panel-header">
+              <h2>Filters</h2>
+              <button class="ghost-button" id="clear-filters-button" type="button">
+                Clear
+              </button>
+            </div>
+            <div class="filter-grid">
+              <label>
+                <span>Quarter</span>
+                <select id="quarter-filter"></select>
+              </label>
+              <div class="filter-group">
+                <span>Channels</span>
+                <div class="channel-filter-group" id="channel-filter-group"></div>
+              </div>
+              <label>
+                <span>Owner</span>
+                <select id="owner-filter"></select>
+              </label>
+              <label>
+                <span>Status</span>
+                <select id="status-filter"></select>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel snapshot-panel">
+            <div class="panel-header">
+              <h2>Executive Snapshot</h2>
+              <p id="snapshot-quarter-label"></p>
+            </div>
+            <div class="snapshot-metrics" id="snapshot-metrics"></div>
+            <div class="status-breakdown">
+              <h3>Status Distribution</h3>
+              <div id="status-breakdown"></div>
+            </div>
+          </section>
+        </aside>
+
+        <section class="content-panel workspace-panel">
+          <div class="content-toolbar">
+            <nav class="view-tabs" aria-label="Dashboard views">
+              <button class="tab-button active" type="button" data-view="roadmap">
+                Initiative Roadmap
+              </button>
+              <button class="tab-button" type="button" data-view="calendar">
+                Content Calendar
+              </button>
+              <button class="tab-button" type="button" data-view="social">
+                Social Calendar
+              </button>
+              <button class="tab-button" type="button" data-view="requests">
+                New Requests
+              </button>
+              <button class="tab-button goals-tab-button" type="button" data-view="goals">
+                Marketing Goals
+              </button>
+            </nav>
+            <label class="sort-control" id="sort-control">
+              <span>Sort cards</span>
+              <select id="column-sort">
+                <option value="default">Default</option>
+                <option value="due-date">Due date</option>
+              </select>
+            </label>
+          </div>
+
+          <section class="view-section active" id="roadmap-view"></section>
+          <section class="view-section" id="calendar-view"></section>
+          <section class="view-section" id="social-view"></section>
+          <section class="view-section" id="goals-view"></section>
+          <section class="view-section" id="requests-view"></section>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="initiative-dialog" class="initiative-dialog">
+      <form id="initiative-form" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Mesh Initiative Editor</p>
+            <h2 id="dialog-title">Create New Initiative</h2>
+          </div>
+          <button class="icon-button" id="close-dialog-button" type="button" aria-label="Close dialog">
+            ×
+          </button>
+        </div>
+
+        <div class="form-grid">
+          <label class="full-width">
+            <span>Initiative Name</span>
+            <input id="initiative-name" name="name" type="text" required />
+          </label>
+
+          <label>
+            <span>Type</span>
+            <select id="initiative-type" name="type" required></select>
+          </label>
+
+          <label>
+            <span>Owner</span>
+            <select id="initiative-owner" name="owner" required>
+              <option value="Eva">Eva</option>
+              <option value="Neal">Neal</option>
+              <option value="Kelly">Kelly</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Quarter</span>
+            <select id="initiative-quarter" name="quarter" required></select>
+          </label>
+
+          <label>
+            <span>Status</span>
+            <select id="initiative-status" name="status" required>
+              <option value="Planned">Planned</option>
+              <option value="In Progress">In Progress</option>
+              <option value="At Risk">At Risk</option>
+              <option value="Complete">Complete</option>
+            </select>
+          </label>
+
+          <label id="initiative-deadline-field">
+            <span>Due Date</span>
+            <input id="initiative-deadline" name="deadline" type="date" />
+          </label>
+
+          <div class="full-width event-date-fields" id="event-date-fields" hidden>
+            <label>
+              <span>Event Start</span>
+              <input id="initiative-start-date" name="startDate" type="date" />
+            </label>
+
+            <label>
+              <span>Event End</span>
+              <input id="initiative-end-date" name="endDate" type="date" />
+            </label>
+          </div>
+
+          <fieldset class="full-width checkbox-fieldset">
+            <legend>Channels</legend>
+            <div class="channel-editor-grid" id="initiative-channel-options"></div>
+            <p class="field-help" id="channel-selection-error" hidden>
+              Select at least one channel.
+            </p>
+          </fieldset>
+
+          <label class="full-width">
+            <span>Description</span>
+            <textarea
+              id="initiative-description"
+              name="description"
+              rows="4"
+              placeholder="Short context for the initiative"
+            ></textarea>
+          </label>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="ghost-button" id="cancel-button" type="button">
+            Cancel
+          </button>
+          <button class="primary-button" type="submit">Save Initiative</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="request-dialog" class="initiative-dialog">
+      <form id="request-form" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Marketing Request Intake</p>
+            <h2>Request Form for Marketing</h2>
+          </div>
+          <button class="icon-button" id="close-request-dialog-button" type="button" aria-label="Close request form">
+            ×
+          </button>
+        </div>
+
+        <div class="form-grid">
+          <label class="full-width">
+            <span>Request Name</span>
+            <input id="request-name" name="name" type="text" required />
+          </label>
+
+          <label>
+            <span>Requested By</span>
+            <input id="requester-name" name="requestedBy" type="text" required />
+          </label>
+
+          <label>
+            <span>Target Quarter</span>
+            <select id="request-quarter" name="quarter" required></select>
+          </label>
+
+          <label>
+            <span>Requested On</span>
+            <input id="request-date" name="requestedDate" type="date" required />
+          </label>
+
+          <label>
+            <span>Requested Due Date</span>
+            <input id="request-needed-by" name="neededBy" type="date" />
+          </label>
+
+          <fieldset class="full-width checkbox-fieldset">
+            <legend>Channels</legend>
+            <div class="channel-editor-grid" id="request-channel-options"></div>
+            <p class="field-help" id="request-selection-error" hidden>
+              Select at least one channel.
+            </p>
+          </fieldset>
+
+          <label class="full-width">
+            <span>Request Details</span>
+            <textarea
+              id="request-notes"
+              name="notes"
+              rows="4"
+              placeholder="Describe the ask, assets needed, and any context"
+            ></textarea>
+          </label>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="ghost-button" id="cancel-request-button" type="button">
+            Cancel
+          </button>
+          <button class="primary-button" type="submit">Submit Request</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="request-details-dialog" class="initiative-dialog">
+      <div class="details-panel">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Marketing Request</p>
+            <h2 id="request-details-title"></h2>
+          </div>
+          <button class="icon-button" id="close-request-details-button" type="button" aria-label="Close request">
+            ×
+          </button>
+        </div>
+
+        <div class="details-grid">
+          <div class="details-chip-row" id="request-details-chip-row"></div>
+          <div class="details-meta" id="request-details-meta"></div>
+          <div class="details-copy">
+            <h3>Request Details</h3>
+            <p id="request-details-description"></p>
+          </div>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="ghost-button danger-button" id="request-delete-button" type="button">
+            Delete Request
+          </button>
+          <button class="ghost-button" id="request-details-close-button" type="button">
+            Close
+          </button>
+          <button class="primary-button" id="request-convert-button" type="button">
+            Convert to Initiative
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="details-dialog" class="initiative-dialog">
+      <div class="details-panel">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Initiative Details</p>
+            <h2 id="details-title"></h2>
+          </div>
+          <button class="icon-button" id="close-details-button" type="button" aria-label="Close details">
+            ×
+          </button>
+        </div>
+
+        <div class="details-grid">
+          <div class="details-chip-row" id="details-chip-row"></div>
+          <div class="details-meta" id="details-meta"></div>
+          <div class="details-copy">
+            <h3>Description</h3>
+            <p id="details-description"></p>
+          </div>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="ghost-button danger-button" id="initiative-delete-button" type="button">
+            Delete Initiative
+          </button>
+          <button class="ghost-button" id="details-close-button" type="button">
+            Close
+          </button>
+          <button class="primary-button" id="details-edit-button" type="button">
+            Edit Initiative
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <template id="initiative-card-template">
+      <article class="initiative-card">
+        <div class="card-topline">
+          <span class="type-badge"></span>
+          <span class="channel-badge"></span>
+        </div>
+        <h3 class="card-title"></h3>
+        <div class="card-meta">
+          <span class="owner-pill"></span>
+          <span class="deadline-pill"></span>
+        </div>
+        <div class="status-row">
+          <div class="status-track">
+            <div class="status-fill"></div>
+          </div>
+          <span class="status-label"></span>
+        </div>
+        <button class="ghost-button card-edit-button" type="button">Edit</button>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

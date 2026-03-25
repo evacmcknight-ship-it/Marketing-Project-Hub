@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="456" height="94" viewBox="0 0 456 94" role="img" aria-labelledby="title desc">
+  <title id="title">Mesh Systems logo</title>
+  <desc id="desc">A two-tone Mesh Systems wordmark with navy and light blue blocks.</desc>
+  <rect x="0" y="6" width="191" height="82" rx="8" fill="#0A2558" />
+  <path d="M191 6H448C452.418 6 456 9.582 456 14V80C456 84.418 452.418 88 448 88H191L204 66L194 47L204 28L191 6Z" fill="#7EA9D0" />
+  <text x="30" y="58" fill="#FFFFFF" font-family="Avenir Next, Trebuchet MS, Segoe UI, sans-serif" font-size="40" font-weight="700" letter-spacing="-1.8">
+    mesh
+  </text>
+  <text x="217" y="58" fill="#FFFFFF" font-family="Avenir Next, Trebuchet MS, Segoe UI, sans-serif" font-size="34" font-weight="600" letter-spacing="-0.8">
+    systems
+  </text>
+</svg>
