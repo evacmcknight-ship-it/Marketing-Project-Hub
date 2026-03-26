@@ -23,7 +23,7 @@
         </div>
         <div class="hero-actions">
           <button class="primary-button" id="add-initiative-button" type="button">
-            Create New Initiative
+            Create New Project
           </button>
           <button class="ghost-button" id="open-request-form-button" type="button">
             Request Form for Marketing
@@ -58,6 +58,10 @@
                 <select id="status-filter"></select>
               </label>
               <label>
+                <span>Type</span>
+                <select id="type-filter"></select>
+              </label>
+              <label>
                 <span>Archive</span>
                 <select id="archive-filter">
                   <option value="active">Active Only</option>
@@ -85,7 +89,7 @@
           <div class="content-toolbar">
             <nav class="view-tabs" aria-label="Dashboard views">
               <button class="tab-button active" type="button" data-view="roadmap">
-                Initiative Roadmap
+                Project Roadmap
               </button>
               <button class="tab-button" type="button" data-view="calendar">
                 Content Calendar
@@ -439,19 +443,19 @@
         <div class="card-topline">
           <div class="card-topline-main">
             <span class="type-badge"></span>
-            <span class="channel-badge"></span>
+            <span class="status-label"></span>
           </div>
-          <label class="card-select-toggle">
-            <input class="card-select-checkbox" type="checkbox" />
-          </label>
+          <div class="card-topline-side">
+            <span class="channel-badge"></span>
+            <label class="card-select-toggle">
+              <input class="card-select-checkbox" type="checkbox" />
+            </label>
+          </div>
         </div>
         <h3 class="card-title"></h3>
         <div class="card-meta">
           <span class="owner-pill"></span>
           <span class="deadline-pill"></span>
-        </div>
-        <div class="status-row">
-          <span class="status-label"></span>
         </div>
       </article>
     </template>

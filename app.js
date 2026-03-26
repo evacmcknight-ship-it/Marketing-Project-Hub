@@ -590,6 +590,7 @@ const state = {
     channels: [],
     owner: "All Owners",
     status: "All Statuses",
+    type: "All Types",
     archive: "active",
   },
   activeView: "roadmap",
@@ -621,6 +622,7 @@ const elements = {
   channelFilterGroup: document.querySelector("#channel-filter-group"),
   ownerFilter: document.querySelector("#owner-filter"),
   statusFilter: document.querySelector("#status-filter"),
+  typeFilter: document.querySelector("#type-filter"),
   archiveFilter: document.querySelector("#archive-filter"),
   snapshotQuarterLabel: document.querySelector("#snapshot-quarter-label"),
   snapshotMetrics: document.querySelector("#snapshot-metrics"),
@@ -732,6 +734,7 @@ function bindEvents() {
   elements.quarterFilter.addEventListener("change", handleSingleFilterChange);
   elements.ownerFilter.addEventListener("change", handleSingleFilterChange);
   elements.statusFilter.addEventListener("change", handleSingleFilterChange);
+  elements.typeFilter.addEventListener("change", handleSingleFilterChange);
   elements.archiveFilter.addEventListener("change", handleSingleFilterChange);
   elements.channelFilterGroup.addEventListener("change", handleChannelFilterChange);
   elements.sortSelect.addEventListener("change", handleSortChange);
@@ -879,6 +882,7 @@ function populateFilterOptions() {
   setSelectOptions(elements.quarterFilter, "All Quarters", quarters, true);
   setSelectOptions(elements.ownerFilter, "All Owners", OWNERS, true);
   setSelectOptions(elements.statusFilter, "All Statuses", statuses, true);
+  setSelectOptions(elements.typeFilter, "All Types", TYPE_OPTIONS, true);
 }
 
 function populateChannelFilters() {
@@ -919,6 +923,7 @@ function syncFilters() {
   elements.quarterFilter.value = state.filters.quarter;
   elements.ownerFilter.value = state.filters.owner;
   elements.statusFilter.value = state.filters.status;
+  elements.typeFilter.value = state.filters.type;
   elements.archiveFilter.value = state.filters.archive;
   elements.channelFilterGroup.querySelectorAll('input[type="checkbox"]').forEach((input) => {
     input.checked = state.filters.channels.includes(input.value);
@@ -940,6 +945,9 @@ function handleSingleFilterChange(event) {
   }
   if (id === "status-filter") {
     state.filters.status = value;
+  }
+  if (id === "type-filter") {
+    state.filters.type = value;
   }
   if (id === "archive-filter") {
     state.filters.archive = value;
@@ -964,6 +972,7 @@ function clearFilters() {
     channels: [],
     owner: "All Owners",
     status: "All Statuses",
+    type: "All Types",
     archive: "active",
   };
   render();
@@ -1140,12 +1149,13 @@ function getFilteredInitiatives() {
       item.channels.some((channel) => state.filters.channels.includes(channel));
     const ownerMatch = state.filters.owner === "All Owners" || item.owner === state.filters.owner;
     const statusMatch = state.filters.status === "All Statuses" || item.status === state.filters.status;
+    const typeMatch = state.filters.type === "All Types" || item.type === state.filters.type;
     const archiveMatch =
       state.filters.archive === "all" ||
       (state.filters.archive === "active" && !item.isArchived) ||
       (state.filters.archive === "archived" && item.isArchived);
 
-    return quarterMatch && channelMatch && ownerMatch && statusMatch && archiveMatch;
+    return quarterMatch && channelMatch && ownerMatch && statusMatch && typeMatch && archiveMatch;
   });
 }
 
@@ -1435,9 +1445,9 @@ function createInitiativeCard(item) {
   fragment.querySelector(".owner-pill").textContent = item.owner;
   fragment.querySelector(".deadline-pill").textContent = getDateBadgeLabel(item);
   fragment.querySelector(".status-label").textContent = item.status;
-  fragment.querySelector(".status-label").style.color = config.color;
-  fragment.querySelector(".status-label").style.borderColor = config.color;
-  fragment.querySelector(".status-label").style.background = `${config.color}14`;
+  fragment.querySelector(".status-label").style.color = "#f7fbff";
+  fragment.querySelector(".status-label").style.borderColor = "transparent";
+  fragment.querySelector(".status-label").style.background = config.color;
   selectCheckbox.checked = isSelected;
   selectCheckbox.setAttribute("aria-label", `Select ${item.name}`);
   card.classList.toggle("selected", isSelected);
