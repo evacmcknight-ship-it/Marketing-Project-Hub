@@ -590,6 +590,7 @@ const state = {
     channels: [],
     owner: "All Owners",
     status: "All Statuses",
+    archive: "active",
   },
   activeView: "roadmap",
   sortMode: "default",
@@ -598,6 +599,8 @@ const state = {
     calendar: [],
     social: [],
   },
+  selectionMode: false,
+  selectedInitiativeIds: [],
   editingId: null,
   convertingRequestId: null,
   sync: {
@@ -618,12 +621,20 @@ const elements = {
   channelFilterGroup: document.querySelector("#channel-filter-group"),
   ownerFilter: document.querySelector("#owner-filter"),
   statusFilter: document.querySelector("#status-filter"),
+  archiveFilter: document.querySelector("#archive-filter"),
   snapshotQuarterLabel: document.querySelector("#snapshot-quarter-label"),
   snapshotMetrics: document.querySelector("#snapshot-metrics"),
   statusBreakdown: document.querySelector("#status-breakdown"),
   tabButtons: document.querySelectorAll(".tab-button"),
   sortSelect: document.querySelector("#column-sort"),
   sortControl: document.querySelector("#sort-control"),
+  toggleSelectionModeButton: document.querySelector("#toggle-selection-mode-button"),
+  bulkToolbar: document.querySelector("#bulk-toolbar"),
+  bulkSelectionCount: document.querySelector("#bulk-selection-count"),
+  selectVisibleButton: document.querySelector("#select-visible-button"),
+  bulkEditButton: document.querySelector("#bulk-edit-button"),
+  archiveSelectedButton: document.querySelector("#archive-selected-button"),
+  clearSelectionButton: document.querySelector("#clear-selection-button"),
   syncStatus: document.querySelector("#sync-status"),
   syncStatusText: document.querySelector("#sync-status-text"),
   publishSharedDataButton: document.querySelector("#publish-shared-data-button"),
@@ -663,7 +674,15 @@ const elements = {
   closeDetailsButton: document.querySelector("#close-details-button"),
   detailsCloseButton: document.querySelector("#details-close-button"),
   detailsEditButton: document.querySelector("#details-edit-button"),
+  initiativeArchiveButton: document.querySelector("#initiative-archive-button"),
   initiativeDeleteButton: document.querySelector("#initiative-delete-button"),
+  bulkEditDialog: document.querySelector("#bulk-edit-dialog"),
+  bulkEditForm: document.querySelector("#bulk-edit-form"),
+  closeBulkEditDialogButton: document.querySelector("#close-bulk-edit-dialog-button"),
+  cancelBulkEditButton: document.querySelector("#cancel-bulk-edit-button"),
+  bulkOwnerSelect: document.querySelector("#bulk-owner"),
+  bulkQuarterSelect: document.querySelector("#bulk-quarter"),
+  bulkChannelGrid: document.querySelector("#bulk-channel-options"),
   form: document.querySelector("#initiative-form"),
   typeEditor: document.querySelector("#initiative-type"),
   quarterEditor: document.querySelector("#initiative-quarter"),
@@ -701,12 +720,21 @@ function bindEvents() {
   elements.closeDetailsButton.addEventListener("click", closeDetailsDialog);
   elements.detailsCloseButton.addEventListener("click", closeDetailsDialog);
   elements.detailsEditButton.addEventListener("click", handleDetailsEdit);
+  elements.initiativeArchiveButton.addEventListener("click", handleInitiativeArchiveToggle);
   elements.initiativeDeleteButton.addEventListener("click", handleInitiativeDelete);
+  elements.toggleSelectionModeButton.addEventListener("click", toggleSelectionMode);
+  elements.selectVisibleButton.addEventListener("click", selectVisibleInitiatives);
+  elements.bulkEditButton.addEventListener("click", openBulkEditDialog);
+  elements.archiveSelectedButton.addEventListener("click", handleArchiveSelected);
+  elements.clearSelectionButton.addEventListener("click", clearSelectedInitiatives);
   elements.publishSharedDataButton.addEventListener("click", publishLocalDataToShared);
+  elements.closeBulkEditDialogButton.addEventListener("click", closeBulkEditDialog);
+  elements.cancelBulkEditButton.addEventListener("click", closeBulkEditDialog);
 
   elements.quarterFilter.addEventListener("change", handleSingleFilterChange);
   elements.ownerFilter.addEventListener("change", handleSingleFilterChange);
   elements.statusFilter.addEventListener("change", handleSingleFilterChange);
+  elements.archiveFilter.addEventListener("change", handleSingleFilterChange);
   elements.channelFilterGroup.addEventListener("change", handleChannelFilterChange);
   elements.sortSelect.addEventListener("change", handleSortChange);
   elements.typeEditor.addEventListener("change", handleTypeEditorChange);
@@ -727,12 +755,14 @@ function bindEvents() {
 
   elements.form.addEventListener("submit", handleFormSubmit);
   elements.requestForm.addEventListener("submit", handleRequestFormSubmit);
+  elements.bulkEditForm.addEventListener("submit", handleBulkEditSubmit);
 }
 
 function render() {
   if (!WORKSPACE_VIEWS.includes(state.activeView)) {
     state.activeView = "roadmap";
   }
+  pruneSelectedInitiatives();
   renderSyncStatus();
   populateEditorTypeOptions();
   populateQuarterOptions();
@@ -740,6 +770,7 @@ function render() {
   populateChannelFilters();
   populateEditorChannelOptions();
   populateRequestQuarterOptions();
+  renderBulkToolbar();
   syncFilters();
   syncSort();
   renderSnapshot();
@@ -759,6 +790,34 @@ function renderSyncStatus() {
 function setSyncState(nextState) {
   state.sync = { ...state.sync, ...nextState };
   renderSyncStatus();
+}
+
+function isCardWorkspaceView(view = state.activeView) {
+  return ["roadmap", "calendar", "social"].includes(view);
+}
+
+function renderBulkToolbar() {
+  const shouldShowToolbar = isCardWorkspaceView() && state.selectionMode;
+  elements.bulkToolbar.hidden = !shouldShowToolbar;
+  elements.toggleSelectionModeButton.hidden = !isCardWorkspaceView();
+  elements.toggleSelectionModeButton.textContent = state.selectionMode ? "Done Selecting" : "Select Cards";
+
+  const selectedCount = state.selectedInitiativeIds.length;
+  const selectedItems = state.initiatives.filter((item) => state.selectedInitiativeIds.includes(item.id));
+  const archiveActionLabel =
+    selectedItems.length > 0 && selectedItems.every((item) => item.isArchived)
+      ? "Restore Selected"
+      : "Archive Selected";
+  elements.bulkSelectionCount.textContent = `${selectedCount} card${selectedCount === 1 ? "" : "s"} selected`;
+  elements.bulkEditButton.disabled = selectedCount === 0;
+  elements.archiveSelectedButton.disabled = selectedCount === 0;
+  elements.archiveSelectedButton.textContent = archiveActionLabel;
+  elements.clearSelectionButton.disabled = selectedCount === 0;
+}
+
+function pruneSelectedInitiatives() {
+  const validIds = new Set(state.initiatives.map((item) => item.id));
+  state.selectedInitiativeIds = state.selectedInitiativeIds.filter((id) => validIds.has(id));
 }
 
 function showLocalOnlyStatus(message) {
@@ -864,6 +923,7 @@ function syncFilters() {
   elements.quarterFilter.value = state.filters.quarter;
   elements.ownerFilter.value = state.filters.owner;
   elements.statusFilter.value = state.filters.status;
+  elements.archiveFilter.value = state.filters.archive;
   elements.channelFilterGroup.querySelectorAll('input[type="checkbox"]').forEach((input) => {
     input.checked = state.filters.channels.includes(input.value);
   });
@@ -885,6 +945,9 @@ function handleSingleFilterChange(event) {
   if (id === "status-filter") {
     state.filters.status = value;
   }
+  if (id === "archive-filter") {
+    state.filters.archive = value;
+  }
 
   render();
 }
@@ -905,8 +968,172 @@ function clearFilters() {
     channels: [],
     owner: "All Owners",
     status: "All Statuses",
+    archive: "active",
   };
   render();
+}
+
+function toggleSelectionMode() {
+  state.selectionMode = !state.selectionMode;
+  if (!state.selectionMode) {
+    state.selectedInitiativeIds = [];
+  }
+  render();
+}
+
+function clearSelectedInitiatives() {
+  state.selectedInitiativeIds = [];
+  renderViews();
+  renderBulkToolbar();
+}
+
+function toggleInitiativeSelection(id) {
+  if (state.selectedInitiativeIds.includes(id)) {
+    state.selectedInitiativeIds = state.selectedInitiativeIds.filter((item) => item !== id);
+  } else {
+    state.selectedInitiativeIds = [...state.selectedInitiativeIds, id];
+  }
+  renderViews();
+  renderBulkToolbar();
+}
+
+function getCurrentViewInitiatives() {
+  const filtered = getFilteredInitiatives();
+
+  if (state.activeView === "roadmap") {
+    return filtered;
+  }
+
+  if (state.activeView === "calendar") {
+    const calendarItems = filtered.filter((item) => CONTENT_TYPES.includes(item.type));
+    const activeQuarter = getFocusedQuarter(calendarItems);
+    return calendarItems.filter((item) => item.quarter === activeQuarter);
+  }
+
+  if (state.activeView === "social") {
+    const socialItems = filtered.filter((item) => item.type === SOCIAL_TYPE);
+    const activeQuarter = getFocusedQuarter(socialItems);
+    return socialItems.filter((item) => item.quarter === activeQuarter);
+  }
+
+  return [];
+}
+
+function selectVisibleInitiatives() {
+  state.selectedInitiativeIds = getCurrentViewInitiatives().map((item) => item.id);
+  renderViews();
+  renderBulkToolbar();
+}
+
+function openBulkEditDialog() {
+  if (state.selectedInitiativeIds.length === 0) {
+    return;
+  }
+
+  elements.bulkEditForm.reset();
+  setSelectOptions(elements.bulkOwnerSelect, "No change", OWNERS, true);
+  setSelectOptions(elements.bulkQuarterSelect, "No change", getAvailableQuarters(), true);
+  elements.bulkChannelGrid.replaceChildren(
+    ...CHANNELS.map((channel) => createChannelCheckbox(channel, false, "bulk"))
+  );
+  elements.bulkEditDialog.showModal();
+}
+
+function closeBulkEditDialog() {
+  elements.bulkEditDialog.close();
+}
+
+async function handleBulkEditSubmit(event) {
+  event.preventDefault();
+
+  const channels = getCheckedValues(elements.bulkChannelGrid);
+  const changes = {};
+  const owner = elements.bulkOwnerSelect.value;
+  const status = elements.bulkEditForm.elements.namedItem("status").value;
+  const quarter = elements.bulkQuarterSelect.value;
+
+  if (owner) {
+    changes.owner = owner;
+  }
+  if (status) {
+    changes.status = status;
+  }
+  if (quarter) {
+    changes.quarter = quarter;
+  }
+  if (channels.length > 0) {
+    changes.channels = channels;
+  }
+
+  if (Object.keys(changes).length === 0) {
+    closeBulkEditDialog();
+    return;
+  }
+
+  const success = await updateInitiativesInBulk(
+    state.selectedInitiativeIds,
+    changes,
+    "Updating selected cards…",
+    "Could not bulk edit the selected cards."
+  );
+
+  if (success) {
+    state.selectedInitiativeIds = [];
+    closeBulkEditDialog();
+    render();
+  }
+}
+
+async function handleArchiveSelected() {
+  if (state.selectedInitiativeIds.length === 0) {
+    return;
+  }
+
+  const selectedItems = state.initiatives.filter((item) => state.selectedInitiativeIds.includes(item.id));
+  const shouldRestore = selectedItems.length > 0 && selectedItems.every((item) => item.isArchived);
+  const actionLabel = shouldRestore ? "Restore" : "Archive";
+
+  if (!window.confirm(`${actionLabel} ${state.selectedInitiativeIds.length} selected cards?`)) {
+    return;
+  }
+
+  const success = await updateInitiativesInBulk(
+    state.selectedInitiativeIds,
+    {
+      isArchived: !shouldRestore,
+      archivedAt: shouldRestore ? "" : new Date().toISOString(),
+    },
+    `${shouldRestore ? "Restoring" : "Archiving"} selected cards…`,
+    `Could not ${shouldRestore ? "restore" : "archive"} the selected cards.`
+  );
+
+  if (success) {
+    state.selectedInitiativeIds = [];
+    render();
+  }
+}
+
+async function handleArchiveColumn(viewKey, label, items) {
+  if (!items.length) {
+    return;
+  }
+
+  const shouldRestore = items.every((item) => item.isArchived);
+  const actionLabel = shouldRestore ? "Restore" : "Archive";
+
+  if (!window.confirm(`${actionLabel} all ${items.length} cards in ${label}?`)) {
+    return;
+  }
+
+  await updateInitiativesInBulk(
+    items.map((item) => item.id),
+    {
+      isArchived: !shouldRestore,
+      archivedAt: shouldRestore ? "" : new Date().toISOString(),
+    },
+    `${shouldRestore ? "Restoring" : "Archiving"} ${label}…`,
+    `Could not ${shouldRestore ? "restore" : "archive"} the cards in ${label}.`
+  );
 }
 
 function getFilteredInitiatives() {
@@ -917,8 +1144,12 @@ function getFilteredInitiatives() {
       item.channels.some((channel) => state.filters.channels.includes(channel));
     const ownerMatch = state.filters.owner === "All Owners" || item.owner === state.filters.owner;
     const statusMatch = state.filters.status === "All Statuses" || item.status === state.filters.status;
+    const archiveMatch =
+      state.filters.archive === "all" ||
+      (state.filters.archive === "active" && !item.isArchived) ||
+      (state.filters.archive === "archived" && item.isArchived);
 
-    return quarterMatch && channelMatch && ownerMatch && statusMatch;
+    return quarterMatch && channelMatch && ownerMatch && statusMatch && archiveMatch;
   });
 }
 
@@ -1044,11 +1275,16 @@ function renderSocialView() {
     return;
   }
 
+  const activeQuarterItems = filtered.filter((item) => item.quarter === activeQuarter);
+  if (activeQuarterItems.length === 0) {
+    elements.socialView.replaceChildren(createEmptyState("No planned social posts yet."));
+    return;
+  }
+
   const itemsByMonth = Object.fromEntries(
     baseMonths.map((month) => [
       month,
-      filtered
-        .filter((item) => item.quarter === activeQuarter)
+      activeQuarterItems
         .filter((item) => getItemMonthLabel(item) === month)
         .sort(getColumnSort()),
     ])
@@ -1072,14 +1308,38 @@ function renderGoalsView() {
   wrapper.className = "goals-panel";
   wrapper.innerHTML = `
     <div class="goals-editor-shell">
-      <div class="goals-editor-toolbar">
-        <button class="ghost-button" type="button" data-command="bold">Bold</button>
-        <button class="ghost-button" type="button" data-command="italic">Italic</button>
-        <button class="ghost-button" type="button" data-command="insertUnorderedList">Bullets</button>
-        <button class="ghost-button" type="button" data-command="insertOrderedList">Numbers</button>
-        <button class="ghost-button" type="button" data-command="formatBlock" data-value="h3">Heading</button>
+      <div class="goals-editor-frame">
+        <div class="goals-editor-toolbar">
+          <button class="editor-tool" type="button" data-command="bold" aria-label="Bold"><strong>B</strong></button>
+          <button class="editor-tool" type="button" data-command="italic" aria-label="Italic"><em>I</em></button>
+          <button class="editor-tool" type="button" data-command="underline" aria-label="Underline"><span class="tool-underline">U</span></button>
+          <button class="editor-tool" type="button" data-command="strikeThrough" aria-label="Strikethrough"><span class="tool-strike">S</span></button>
+          <span class="editor-separator" aria-hidden="true"></span>
+          <button class="editor-tool" type="button" data-command="insertUnorderedList" aria-label="Bulleted list">List</button>
+          <button class="editor-tool" type="button" data-command="insertOrderedList" aria-label="Numbered list">1 2 3</button>
+          <span class="editor-separator" aria-hidden="true"></span>
+          <button class="editor-tool" type="button" data-command="formatBlock" data-value="blockquote" aria-label="Quote">99</button>
+          <button class="editor-tool" type="button" data-command="createLink" aria-label="Insert link">Link</button>
+          <button class="editor-tool" type="button" data-command="formatBlock" data-value="h3" aria-label="Heading">Aa</button>
+          <button class="editor-tool" type="button" data-command="removeFormat" aria-label="Remove formatting">Tx</button>
+          <button class="editor-tool editor-tool-clear" type="button" data-command="clearEditor" aria-label="Clear editor">Trash</button>
+        </div>
+        <div
+          class="goals-editor"
+          id="goals-editor"
+          contenteditable="true"
+          spellcheck="true"
+          data-placeholder="Type a message"
+        ></div>
+        <div class="goals-editor-footer">
+          <span class="goals-editor-hint">Formatting syncs automatically</span>
+          <div class="goals-editor-footer-actions">
+            <button class="editor-footer-button" type="button" data-command="foreColor" data-value="#5b61d6" aria-label="Accent text">A</button>
+            <button class="editor-footer-button" type="button" data-command="insertText" data-value="-" aria-label="Insert dash">-</button>
+            <button class="editor-footer-button" type="button" data-command="insertHorizontalRule" aria-label="Insert divider">+</button>
+          </div>
+        </div>
       </div>
-      <div class="goals-editor" id="goals-editor" contenteditable="true" spellcheck="true"></div>
     </div>
   `;
   elements.goalsView.replaceChildren(wrapper);
@@ -1094,7 +1354,19 @@ function renderGoalsView() {
     }
     event.preventDefault();
     editor.focus();
-    document.execCommand(button.dataset.command, false, button.dataset.value || null);
+    if (button.dataset.command === "createLink") {
+      const url = window.prompt("Paste a URL to link to:");
+      if (!url) {
+        return;
+      }
+      document.execCommand("createLink", false, url);
+    } else if (button.dataset.command === "clearEditor") {
+      editor.innerHTML = "";
+    } else if (button.dataset.command === "insertText") {
+      document.execCommand("insertText", false, button.dataset.value || "");
+    } else {
+      document.execCommand(button.dataset.command, false, button.dataset.value || null);
+    }
     state.goalsHtml = editor.innerHTML;
     persistGoalsHtml();
     queueGoalsSave();
@@ -1154,6 +1426,9 @@ function createInitiativeCard(item) {
   const card = fragment.querySelector(".initiative-card");
   const config = STATUS_CONFIG[item.status];
   const channelBadge = fragment.querySelector(".channel-badge");
+  const selectToggle = fragment.querySelector(".card-select-toggle");
+  const isSelectable = state.selectionMode && isCardWorkspaceView();
+  const isSelected = state.selectedInitiativeIds.includes(item.id);
 
   fragment.querySelector(".type-badge").textContent = item.type;
   channelBadge.textContent = getChannelBadgeSummary(item.channels);
@@ -1165,17 +1440,37 @@ function createInitiativeCard(item) {
   fragment.querySelector(".status-label").style.borderColor = config.color;
   fragment.querySelector(".status-label").style.background = `${config.color}14`;
   const editButton = fragment.querySelector(".card-edit-button");
+  selectToggle.hidden = !isSelectable;
+  selectToggle.textContent = isSelected ? "Selected" : "Select";
+  card.classList.toggle("selected", isSelected);
+  card.classList.toggle("archived", item.isArchived);
+  editButton.hidden = isSelectable;
+
+  selectToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleInitiativeSelection(item.id);
+  });
   editButton.addEventListener("click", (event) => {
     event.stopPropagation();
     openDialog(item.id);
   });
   card.tabIndex = 0;
   card.setAttribute("role", "button");
-  card.setAttribute("aria-label", `Open details for ${item.name}`);
-  card.addEventListener("click", () => openDetailsDialog(item.id));
+  card.setAttribute("aria-label", isSelectable ? `Select ${item.name}` : `Open details for ${item.name}`);
+  card.addEventListener("click", () => {
+    if (isSelectable) {
+      toggleInitiativeSelection(item.id);
+      return;
+    }
+    openDetailsDialog(item.id);
+  });
   card.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
+      if (isSelectable) {
+        toggleInitiativeSelection(item.id);
+        return;
+      }
       openDetailsDialog(item.id);
     }
   });
@@ -1349,11 +1644,16 @@ function openDetailsDialog(id) {
       <strong style="color:${STATUS_CONFIG[item.status].color}">${item.status}</strong>
     </div>
     <div class="detail-meta-item">
+      <span>Archive</span>
+      <strong>${item.isArchived ? "Archived" : "Active"}</strong>
+    </div>
+    <div class="detail-meta-item">
       <span>${item.type === "Event" ? "Event Window" : "Due Date"}</span>
       <strong>${getDetailDateLabel(item)}</strong>
     </div>
   `;
   elements.detailsDescription.textContent = item.description || "No additional context provided.";
+  elements.initiativeArchiveButton.textContent = item.isArchived ? "Restore Initiative" : "Archive Initiative";
   elements.detailsDialog.showModal();
 }
 
@@ -1457,6 +1757,35 @@ async function handleInitiativeDelete() {
   render();
 }
 
+async function handleInitiativeArchiveToggle() {
+  const id = elements.detailsDialog.dataset.id;
+  const initiative = getInitiativeById(id);
+  if (!initiative) {
+    return;
+  }
+
+  const nextArchivedState = !initiative.isArchived;
+  const verb = nextArchivedState ? "archive" : "restore";
+  if (!window.confirm(`${verb.charAt(0).toUpperCase()}${verb.slice(1)} "${initiative.name}"?`)) {
+    return;
+  }
+
+  const success = await updateInitiativesInBulk(
+    [id],
+    {
+      isArchived: nextArchivedState,
+      archivedAt: nextArchivedState ? new Date().toISOString() : "",
+    },
+    `${nextArchivedState ? "Archiving" : "Restoring"} "${initiative.name}"…`,
+    `Could not ${verb} "${initiative.name}".`
+  );
+
+  if (success) {
+    closeDetailsDialog();
+    render();
+  }
+}
+
 async function handleFormSubmit(event) {
   event.preventDefault();
 
@@ -1484,6 +1813,7 @@ async function handleFormSubmit(event) {
   }
   elements.channelSelectionError.hidden = true;
   elements.channelSelectionError.textContent = "Select at least one channel.";
+  const existingItem = state.editingId ? getInitiativeById(state.editingId) : null;
   const nextItem = {
     id: state.editingId || createId(),
     name: formData.get("name").toString().trim(),
@@ -1496,6 +1826,8 @@ async function handleFormSubmit(event) {
     startDate,
     endDate,
     description: formData.get("description").toString().trim(),
+    isArchived: existingItem?.isArchived || false,
+    archivedAt: existingItem?.archivedAt || "",
   };
 
   if (isSharedWorkspaceActive()) {
@@ -1825,6 +2157,69 @@ function saveGoalsHtmlInShared(html) {
   });
 }
 
+function bulkUpdateInitiativesInShared(ids, changes) {
+  return requestSharedJson("initiatives-bulk", {
+    method: "PATCH",
+    body: { ids, changes },
+  });
+}
+
+function applyInitiativeChanges(item, changes) {
+  const nextItem = {
+    ...item,
+    owner: changes.owner || item.owner,
+    quarter: changes.quarter || item.quarter,
+    status: changes.status || item.status,
+    channels: Array.isArray(changes.channels) && changes.channels.length > 0 ? changes.channels : item.channels,
+  };
+
+  if (typeof changes.isArchived === "boolean") {
+    nextItem.isArchived = changes.isArchived;
+    nextItem.archivedAt = changes.isArchived ? changes.archivedAt || new Date().toISOString() : "";
+  }
+
+  return nextItem;
+}
+
+async function updateInitiativesInBulk(ids, changes, savingMessage, failureMessage) {
+  if (!ids.length) {
+    return false;
+  }
+
+  if (isSharedWorkspaceActive()) {
+    setSyncState({
+      mode: "saving",
+      message: savingMessage,
+      canPublishLocalData: false,
+      isBusy: true,
+    });
+
+    try {
+      await bulkUpdateInitiativesInShared(ids, changes);
+      await hydrateSharedState({ background: true, preserveStatus: true });
+      setSharedReadyStatus();
+      return true;
+    } catch (error) {
+      console.error(error);
+      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
+      setSyncState({
+        mode: "error",
+        message: failureMessage,
+        canPublishLocalData: false,
+        isBusy: false,
+      });
+      window.alert(failureMessage);
+      return false;
+    }
+  }
+
+  state.initiatives = state.initiatives.map((item) => (
+    ids.includes(item.id) ? applyInitiativeChanges(item, changes) : item
+  ));
+  persistInitiatives();
+  return true;
+}
+
 function loadInitiatives() {
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -1887,6 +2282,7 @@ function normalizeInitiatives(items, { fallbackToDefaults = true } = {}) {
     const deadline = typeof item.deadline === "string" ? item.deadline : "";
     const startDate = typeof item.startDate === "string" ? item.startDate : "";
     const endDate = typeof item.endDate === "string" ? item.endDate : type === "Event" ? deadline : "";
+    const archivedAt = typeof item.archivedAt === "string" ? item.archivedAt : "";
     return {
       id: item.id || createId(),
       name: item.name || "Untitled initiative",
@@ -1899,6 +2295,8 @@ function normalizeInitiatives(items, { fallbackToDefaults = true } = {}) {
       startDate,
       endDate,
       description: typeof item.description === "string" ? item.description : "",
+      isArchived: Boolean(item.isArchived),
+      archivedAt,
     };
   });
 }
@@ -2200,6 +2598,7 @@ function renderCollapsibleColumnView({
   labels.forEach((label) => {
     const items = getItemsForLabel(label);
     const isExpanded = expandedLabels.has(label);
+    const shouldRestore = items.length > 0 && items.every((item) => item.isArchived);
     const column = document.createElement("section");
     column.className = "quarter-column";
     column.classList.toggle("collapsed", !isExpanded);
@@ -2210,18 +2609,22 @@ function renderCollapsibleColumnView({
             <span class="quarter-heading">${label}</span>
             <span class="quarter-count">${countLabel(items.length)}</span>
           </span>
-          <button
-            class="quarter-action"
-            type="button"
-            aria-label="${isExpanded ? `Collapse ${label}` : `Expand ${label}`}"
-            title="${isExpanded ? `Collapse ${label}` : `Expand ${label}`}"
-          >
-            ${isExpanded ? "Collapse" : "+"}
-          </button>
+          <span class="quarter-actions">
+            ${isExpanded && items.length > 0 ? `<button class="quarter-archive-action" type="button">${shouldRestore ? "Restore" : "Archive"}</button>` : ""}
+            <button
+              class="quarter-action"
+              type="button"
+              aria-label="${isExpanded ? `Collapse ${label}` : `Expand ${label}`}"
+              title="${isExpanded ? `Collapse ${label}` : `Expand ${label}`}"
+            >
+              ${isExpanded ? "Collapse" : "+"}
+            </button>
+          </span>
         </div>
       </header>
     `;
     column.querySelector(".quarter-action").addEventListener("click", () => toggleColumn(viewKey, label));
+    column.querySelector(".quarter-archive-action")?.addEventListener("click", () => handleArchiveColumn(viewKey, label, items));
 
     if (isExpanded) {
       column.append(items.length === 0 ? createEmptyState(emptyColumnMessage) : renderCardStack(items));

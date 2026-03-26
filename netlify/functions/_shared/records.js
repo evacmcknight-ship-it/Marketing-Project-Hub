@@ -33,6 +33,16 @@ function normalizeChannels(channels) {
   return [...new Set(channels.map((channel) => sanitizeString(channel)).filter(Boolean))];
 }
 
+function normalizeTimestamp(value) {
+  const normalized = sanitizeString(value);
+  if (!normalized) {
+    return null;
+  }
+
+  const timestamp = new Date(normalized);
+  return Number.isNaN(timestamp.getTime()) ? null : timestamp.toISOString();
+}
+
 function toInitiativeRecord(payload) {
   const name = sanitizeString(payload.name);
   const type = sanitizeString(payload.type);
@@ -60,6 +70,8 @@ function toInitiativeRecord(payload) {
     start_date: startDate,
     end_date: endDate,
     description: sanitizeString(payload.description),
+    is_archived: Boolean(payload.isArchived),
+    archived_at: payload.isArchived ? normalizeTimestamp(payload.archivedAt) || new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
   };
 }
@@ -77,6 +89,8 @@ function fromInitiativeRecord(record) {
     startDate: record.start_date || "",
     endDate: record.end_date || "",
     description: record.description || "",
+    isArchived: Boolean(record.is_archived),
+    archivedAt: record.archived_at || "",
   };
 }
 
@@ -121,6 +135,8 @@ function fromRequestRecord(record) {
 module.exports = {
   fromInitiativeRecord,
   fromRequestRecord,
+  normalizeChannels,
+  normalizeTimestamp,
   sanitizeString,
   toInitiativeRecord,
   toRequestRecord,

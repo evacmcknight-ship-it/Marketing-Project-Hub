@@ -47,6 +47,10 @@ That is the one-time step that copies your current browser data into Supabase so
 
 The app also refreshes shared data periodically while the page is open, but a manual refresh is the fastest way to confirm the first test.
 
+## Existing shared workspaces upgrading archive support
+
+If you already set up Supabase before the archive feature was added, run `SUPABASE_ARCHIVE_MIGRATION.sql` in the Supabase SQL Editor once. That adds the archive fields used by the new archive and restore controls.
+
 ## What happens after setup
 
 - New cards, edits, deletes, requests, and goals changes save to the shared database.

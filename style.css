@@ -453,6 +453,29 @@ textarea {
   color: var(--muted);
 }
 
+.bulk-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(237, 244, 251, 0.94));
+}
+
+.bulk-toolbar strong {
+  font-size: 1rem;
+}
+
+.bulk-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .tab-button {
   padding: 12px 18px;
   color: var(--muted);
@@ -476,25 +499,115 @@ textarea {
 }
 
 .goals-editor-shell {
-  display: grid;
-  gap: 14px;
+  display: block;
+}
+
+.goals-editor-frame {
+  border: 1px solid rgba(16, 45, 99, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 10px 30px rgba(16, 45, 99, 0.06);
+  overflow: hidden;
 }
 
 .goals-editor-toolbar {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(16, 45, 99, 0.08);
+}
+
+.editor-tool,
+.editor-footer-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.editor-tool:hover,
+.editor-footer-button:hover {
+  background: rgba(16, 45, 99, 0.06);
+}
+
+.editor-tool strong,
+.editor-tool em,
+.tool-underline,
+.tool-strike {
+  font-size: 1.15rem;
+}
+
+.editor-tool {
+  padding: 0 10px;
+  font-size: 0.94rem;
+  color: rgba(21, 49, 84, 0.82);
+}
+
+.tool-underline {
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.tool-strike {
+  text-decoration: line-through;
+}
+
+.editor-tool-clear {
+  margin-left: auto;
+  min-width: auto;
+  padding-inline: 12px;
+  color: var(--muted);
+}
+
+.editor-separator {
+  width: 1px;
+  height: 26px;
+  background: rgba(16, 45, 99, 0.14);
 }
 
 .goals-editor {
-  min-height: 560px;
-  padding: 20px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(237, 244, 251, 0.92));
+  min-height: 420px;
+  padding: 22px 24px 120px;
+  background: #ffffff;
   color: var(--text);
   line-height: 1.65;
   outline: none;
+  position: relative;
+}
+
+.goals-editor:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(21, 49, 84, 0.6);
+  pointer-events: none;
+}
+
+.goals-editor-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid rgba(16, 45, 99, 0.08);
+  box-shadow: inset 0 -3px 0 var(--progress);
+}
+
+.goals-editor-hint {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.goals-editor-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .goals-editor h3 {
@@ -570,11 +683,14 @@ textarea {
   display: grid;
   gap: 14px;
   align-content: start;
+  grid-template-rows: auto minmax(0, 1fr);
   padding: 18px;
   border-radius: var(--radius-lg);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(237, 244, 251, 0.9));
   border: 1px solid var(--line);
+  max-height: min(70vh, 860px);
+  overflow: hidden;
 }
 
 .quarter-column.collapsed {
@@ -626,22 +742,39 @@ textarea {
   cursor: pointer;
 }
 
+.quarter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quarter-archive-action {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .quarter-count {
   color: var(--muted);
   font-size: 0.95rem;
 }
 
 .quarter-column.collapsed .quarter-toggle {
-  min-height: 0;
+  min-height: 100%;
   flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 14px;
 }
 
 .quarter-column.collapsed .quarter-heading-group {
   width: 100%;
   justify-items: center;
+  min-height: 0;
 }
 
 .quarter-column.collapsed .quarter-heading {
@@ -649,7 +782,7 @@ textarea {
   transform: none;
   text-align: center;
   font-size: 0.74rem;
-  line-height: 1.05;
+  line-height: 1.15;
   letter-spacing: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -674,6 +807,10 @@ textarea {
   text-decoration: none;
 }
 
+.quarter-column.collapsed .quarter-actions {
+  justify-content: center;
+}
+
 .quarter-column header,
 .calendar-month header {
   display: flex;
@@ -690,17 +827,56 @@ textarea {
 .initiative-stack {
   display: grid;
   gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(41, 81, 130, 0.28) transparent;
+}
+
+.initiative-stack::-webkit-scrollbar {
+  width: 10px;
+}
+
+.initiative-stack::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.initiative-stack::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(41, 81, 130, 0.24);
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 .initiative-card {
   display: grid;
   gap: 12px;
+  position: relative;
   padding: 16px;
   border-radius: 18px;
   border: 1px solid rgba(41, 81, 130, 0.12);
   background: linear-gradient(170deg, rgba(255, 255, 255, 0.98), rgba(241, 247, 252, 0.92));
   box-shadow: 0 8px 18px rgba(16, 45, 99, 0.06);
   cursor: pointer;
+}
+
+.initiative-card.selected {
+  border-color: var(--progress);
+  box-shadow: 0 0 0 2px rgba(47, 120, 198, 0.2), 0 8px 18px rgba(16, 45, 99, 0.06);
+}
+
+.initiative-card.archived {
+  opacity: 0.72;
+}
+
+.card-select-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 6px 10px;
+  font-size: 0.74rem;
+  font-weight: 700;
 }
 
 .card-topline,
@@ -1004,6 +1180,11 @@ textarea {
     align-items: flex-start;
   }
 
+  .bulk-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .toolbar-meta {
     width: 100%;
     justify-content: flex-start;
@@ -1043,6 +1224,11 @@ textarea {
   .toolbar-meta,
   .sync-status {
     width: 100%;
+  }
+
+  .bulk-toolbar-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .card-meta,

@@ -12,6 +12,8 @@ create table if not exists public.initiatives (
   start_date date,
   end_date date,
   description text not null default '',
+  is_archived boolean not null default false,
+  archived_at timestamptz,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
