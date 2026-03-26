@@ -599,8 +599,8 @@ const state = {
     calendar: [],
     social: [],
   },
-  selectionMode: false,
   selectedInitiativeIds: [],
+  draggedInitiativeId: null,
   editingId: null,
   convertingRequestId: null,
   sync: {
@@ -628,7 +628,6 @@ const elements = {
   tabButtons: document.querySelectorAll(".tab-button"),
   sortSelect: document.querySelector("#column-sort"),
   sortControl: document.querySelector("#sort-control"),
-  toggleSelectionModeButton: document.querySelector("#toggle-selection-mode-button"),
   bulkToolbar: document.querySelector("#bulk-toolbar"),
   bulkSelectionCount: document.querySelector("#bulk-selection-count"),
   selectVisibleButton: document.querySelector("#select-visible-button"),
@@ -722,7 +721,6 @@ function bindEvents() {
   elements.detailsEditButton.addEventListener("click", handleDetailsEdit);
   elements.initiativeArchiveButton.addEventListener("click", handleInitiativeArchiveToggle);
   elements.initiativeDeleteButton.addEventListener("click", handleInitiativeDelete);
-  elements.toggleSelectionModeButton.addEventListener("click", toggleSelectionMode);
   elements.selectVisibleButton.addEventListener("click", selectVisibleInitiatives);
   elements.bulkEditButton.addEventListener("click", openBulkEditDialog);
   elements.archiveSelectedButton.addEventListener("click", handleArchiveSelected);
@@ -797,10 +795,8 @@ function isCardWorkspaceView(view = state.activeView) {
 }
 
 function renderBulkToolbar() {
-  const shouldShowToolbar = isCardWorkspaceView() && state.selectionMode;
+  const shouldShowToolbar = isCardWorkspaceView() && state.selectedInitiativeIds.length > 0;
   elements.bulkToolbar.hidden = !shouldShowToolbar;
-  elements.toggleSelectionModeButton.hidden = !isCardWorkspaceView();
-  elements.toggleSelectionModeButton.textContent = state.selectionMode ? "Done Selecting" : "Select Cards";
 
   const selectedCount = state.selectedInitiativeIds.length;
   const selectedItems = state.initiatives.filter((item) => state.selectedInitiativeIds.includes(item.id));
@@ -973,14 +969,6 @@ function clearFilters() {
   render();
 }
 
-function toggleSelectionMode() {
-  state.selectionMode = !state.selectionMode;
-  if (!state.selectionMode) {
-    state.selectedInitiativeIds = [];
-  }
-  render();
-}
-
 function clearSelectedInitiatives() {
   state.selectedInitiativeIds = [];
   renderViews();
@@ -1023,6 +1011,14 @@ function selectVisibleInitiatives() {
   state.selectedInitiativeIds = getCurrentViewInitiatives().map((item) => item.id);
   renderViews();
   renderBulkToolbar();
+}
+
+function setDraggedInitiative(id) {
+  state.draggedInitiativeId = id;
+}
+
+function clearDraggedInitiative() {
+  state.draggedInitiativeId = null;
 }
 
 function openBulkEditDialog() {
@@ -1216,6 +1212,7 @@ function renderRoadmapView() {
     labels: quarters,
     defaultExpandedLabel: quarters.includes(getCurrentQuarterLabel()) ? getCurrentQuarterLabel() : getFocusedQuarter(state.initiatives),
     getItemsForLabel: (quarter) => filtered.filter((item) => item.quarter === quarter),
+    getDropChanges: (item, quarter) => buildQuarterDropChanges(item, quarter),
     countLabel: (count) => `${count} items`,
     emptyViewMessage: "No initiatives match the current filters.",
     emptyColumnMessage: "No initiatives in this column.",
@@ -1253,6 +1250,7 @@ function renderCalendarView() {
     labels: baseMonths,
     defaultExpandedLabel: baseMonths.find((month) => itemsByMonth[month].length > 0) || baseMonths[0],
     getItemsForLabel: (month) => itemsByMonth[month],
+    getDropChanges: (item, month) => buildMonthDropChanges(item, month, activeQuarter),
     countLabel: (count) => `${count} items`,
     emptyViewMessage: "Select a specific quarter or use the standard Q1-Q4 YYYY format.",
     emptyColumnMessage: "No planned content in this month yet.",
@@ -1295,6 +1293,7 @@ function renderSocialView() {
     labels: baseMonths,
     defaultExpandedLabel: baseMonths.find((month) => itemsByMonth[month].length > 0) || baseMonths[0],
     getItemsForLabel: (month) => itemsByMonth[month],
+    getDropChanges: (item, month) => buildMonthDropChanges(item, month, activeQuarter),
     countLabel: (count) => `${count} posts`,
     emptyViewMessage: "Select a specific quarter or use the standard Q1-Q4 YYYY format.",
     emptyColumnMessage: "No planned social posts in this month yet.",
@@ -1427,7 +1426,7 @@ function createInitiativeCard(item) {
   const config = STATUS_CONFIG[item.status];
   const channelBadge = fragment.querySelector(".channel-badge");
   const selectToggle = fragment.querySelector(".card-select-toggle");
-  const isSelectable = state.selectionMode && isCardWorkspaceView();
+  const selectCheckbox = fragment.querySelector(".card-select-checkbox");
   const isSelected = state.selectedInitiativeIds.includes(item.id);
 
   fragment.querySelector(".type-badge").textContent = item.type;
@@ -1439,38 +1438,44 @@ function createInitiativeCard(item) {
   fragment.querySelector(".status-label").style.color = config.color;
   fragment.querySelector(".status-label").style.borderColor = config.color;
   fragment.querySelector(".status-label").style.background = `${config.color}14`;
-  const editButton = fragment.querySelector(".card-edit-button");
-  selectToggle.hidden = !isSelectable;
-  selectToggle.textContent = isSelected ? "Selected" : "Select";
+  selectCheckbox.checked = isSelected;
+  selectCheckbox.setAttribute("aria-label", `Select ${item.name}`);
+  selectToggle.querySelector("span").textContent = isSelected ? "Selected" : "Select";
   card.classList.toggle("selected", isSelected);
   card.classList.toggle("archived", item.isArchived);
-  editButton.hidden = isSelectable;
 
   selectToggle.addEventListener("click", (event) => {
     event.stopPropagation();
-    toggleInitiativeSelection(item.id);
   });
-  editButton.addEventListener("click", (event) => {
+  selectCheckbox.addEventListener("click", (event) => {
     event.stopPropagation();
-    openDialog(item.id);
+  });
+  selectCheckbox.addEventListener("change", (event) => {
+    event.stopPropagation();
+    toggleInitiativeSelection(item.id);
   });
   card.tabIndex = 0;
   card.setAttribute("role", "button");
-  card.setAttribute("aria-label", isSelectable ? `Select ${item.name}` : `Open details for ${item.name}`);
-  card.addEventListener("click", () => {
-    if (isSelectable) {
-      toggleInitiativeSelection(item.id);
-      return;
+  card.setAttribute("aria-label", `Open details for ${item.name}`);
+  card.draggable = isCardWorkspaceView();
+  card.addEventListener("dragstart", (event) => {
+    setDraggedInitiative(item.id);
+    card.classList.add("dragging");
+    event.dataTransfer?.setData("text/plain", item.id);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
     }
+  });
+  card.addEventListener("dragend", () => {
+    card.classList.remove("dragging");
+    window.setTimeout(clearDraggedInitiative, 0);
+  });
+  card.addEventListener("click", () => {
     openDetailsDialog(item.id);
   });
   card.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      if (isSelectable) {
-        toggleInitiativeSelection(item.id);
-        return;
-      }
       openDetailsDialog(item.id);
     }
   });
@@ -2171,6 +2176,9 @@ function applyInitiativeChanges(item, changes) {
     quarter: changes.quarter || item.quarter,
     status: changes.status || item.status,
     channels: Array.isArray(changes.channels) && changes.channels.length > 0 ? changes.channels : item.channels,
+    deadline: typeof changes.deadline === "string" ? changes.deadline : item.deadline,
+    startDate: typeof changes.startDate === "string" ? changes.startDate : item.startDate,
+    endDate: typeof changes.endDate === "string" ? changes.endDate : item.endDate,
   };
 
   if (typeof changes.isArchived === "boolean") {
@@ -2578,6 +2586,7 @@ function renderCollapsibleColumnView({
   labels,
   defaultExpandedLabel,
   getItemsForLabel,
+  getDropChanges,
   countLabel,
   emptyViewMessage,
   emptyColumnMessage,
@@ -2602,6 +2611,8 @@ function renderCollapsibleColumnView({
     const column = document.createElement("section");
     column.className = "quarter-column";
     column.classList.toggle("collapsed", !isExpanded);
+    column.dataset.viewKey = viewKey;
+    column.dataset.label = label;
     column.innerHTML = `
       <header class="quarter-header">
         <div class="quarter-toggle" aria-expanded="${isExpanded}">
@@ -2625,6 +2636,31 @@ function renderCollapsibleColumnView({
     `;
     column.querySelector(".quarter-action").addEventListener("click", () => toggleColumn(viewKey, label));
     column.querySelector(".quarter-archive-action")?.addEventListener("click", () => handleArchiveColumn(viewKey, label, items));
+    if (typeof getDropChanges === "function") {
+      column.addEventListener("dragover", (event) => {
+        if (state.draggedInitiativeId) {
+          event.preventDefault();
+          column.classList.add("drop-target");
+          if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = "move";
+          }
+        }
+      });
+      column.addEventListener("dragleave", (event) => {
+        if (!column.contains(event.relatedTarget)) {
+          column.classList.remove("drop-target");
+        }
+      });
+      column.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        column.classList.remove("drop-target");
+        const draggedId = event.dataTransfer?.getData("text/plain") || state.draggedInitiativeId;
+        if (!draggedId) {
+          return;
+        }
+        await handleCardDrop(draggedId, viewKey, label, getDropChanges);
+      });
+    }
 
     if (isExpanded) {
       column.append(items.length === 0 ? createEmptyState(emptyColumnMessage) : renderCardStack(items));
@@ -2634,6 +2670,159 @@ function renderCollapsibleColumnView({
   });
 
   target.replaceChildren(grid);
+}
+
+async function handleCardDrop(id, viewKey, label, getDropChanges) {
+  const item = getInitiativeById(id);
+  clearDraggedInitiative();
+  if (!item) {
+    return;
+  }
+
+  const changes = getDropChanges(item, label, viewKey);
+  if (!changes || Object.keys(changes).length === 0) {
+    return;
+  }
+
+  if (isSharedWorkspaceActive()) {
+    const nextItem = applyInitiativeChanges(item, changes);
+    setSyncState({
+      mode: "saving",
+      message: `Moving "${item.name}"…`,
+      canPublishLocalData: false,
+      isBusy: true,
+    });
+
+    try {
+      await saveInitiativeInShared(nextItem, true);
+      await hydrateSharedState({ background: true, preserveStatus: true });
+      setSharedReadyStatus();
+      return;
+    } catch (error) {
+      console.error(error);
+      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
+      setSyncState({
+        mode: "error",
+        message: `Could not move "${item.name}". ${error.message || ""}`.trim(),
+        canPublishLocalData: false,
+        isBusy: false,
+      });
+      window.alert(`Could not move "${item.name}".\n\n${error.message || "The shared workspace rejected the update."}`);
+      return;
+    }
+  }
+
+  state.initiatives = state.initiatives.map((initiative) => (
+    initiative.id === id ? applyInitiativeChanges(initiative, changes) : initiative
+  ));
+  persistInitiatives();
+  render();
+}
+
+function buildQuarterDropChanges(item, targetQuarter) {
+  const changes = {};
+  if (item.quarter !== targetQuarter) {
+    changes.quarter = targetQuarter;
+  }
+
+  const nextDeadline = moveDateToQuarter(item.deadline, targetQuarter);
+  const nextStartDate = moveDateToQuarter(item.startDate, targetQuarter);
+  const nextEndDate = moveDateToQuarter(item.endDate, targetQuarter);
+
+  if (nextDeadline && nextDeadline !== item.deadline) {
+    changes.deadline = nextDeadline;
+  }
+  if (nextStartDate && nextStartDate !== item.startDate) {
+    changes.startDate = nextStartDate;
+  }
+  if (nextEndDate && nextEndDate !== item.endDate) {
+    changes.endDate = nextEndDate;
+  }
+
+  return changes;
+}
+
+function buildMonthDropChanges(item, targetMonth, quarterLabel) {
+  const changes = {};
+  if (item.quarter !== quarterLabel) {
+    changes.quarter = quarterLabel;
+  }
+
+  const nextDeadline = moveDateToMonth(item.deadline, targetMonth, quarterLabel);
+  const nextStartDate = moveDateToMonth(item.startDate, targetMonth, quarterLabel);
+  const nextEndDate = moveDateToMonth(item.endDate, targetMonth, quarterLabel);
+
+  if (nextDeadline && nextDeadline !== item.deadline) {
+    changes.deadline = nextDeadline;
+  }
+  if (nextStartDate && nextStartDate !== item.startDate) {
+    changes.startDate = nextStartDate;
+  }
+  if (nextEndDate && nextEndDate !== item.endDate) {
+    changes.endDate = nextEndDate;
+  }
+
+  return changes;
+}
+
+function getQuarterStartMonthIndex(quarterLabel) {
+  const parsed = parseQuarterLabel(quarterLabel);
+  return parsed ? (parsed.quarter - 1) * 3 : 0;
+}
+
+function moveDateToQuarter(dateString, targetQuarterLabel) {
+  if (!dateString) {
+    return "";
+  }
+
+  const [yearString, monthString, dayString] = dateString.split("-");
+  const parsed = parseQuarterLabel(targetQuarterLabel);
+  if (!parsed) {
+    return dateString;
+  }
+
+  const originalMonthIndex = Number.parseInt(monthString, 10) - 1;
+  const day = Number.parseInt(dayString, 10);
+  const sourceQuarterOffset = ((originalMonthIndex % 3) + 3) % 3;
+  const targetMonthIndex = getQuarterStartMonthIndex(targetQuarterLabel) + sourceQuarterOffset;
+  return buildClampedDate(parsed.year, targetMonthIndex, day);
+}
+
+function moveDateToMonth(dateString, targetMonthLabel, quarterLabel) {
+  const parsedQuarter = parseQuarterLabel(quarterLabel);
+  const targetMonthIndex = getMonthIndexByName(targetMonthLabel);
+  if (!parsedQuarter || targetMonthIndex === -1) {
+    return dateString || "";
+  }
+
+  const currentDay = dateString ? Number.parseInt(dateString.split("-")[2], 10) : 1;
+  return buildClampedDate(parsedQuarter.year, targetMonthIndex, currentDay);
+}
+
+function buildClampedDate(year, monthIndex, day) {
+  const safeDay = Number.isFinite(day) ? day : 1;
+  const lastDayOfMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const clampedDay = Math.min(Math.max(safeDay, 1), lastDayOfMonth);
+  const month = `${monthIndex + 1}`.padStart(2, "0");
+  const date = `${clampedDay}`.padStart(2, "0");
+  return `${year}-${month}-${date}`;
+}
+
+function getMonthIndexByName(monthLabel) {
+  return [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ].indexOf(monthLabel);
 }
 
 function getExpandedColumnSet(viewKey, labels, defaultExpandedLabel = labels[0]) {

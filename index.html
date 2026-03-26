@@ -113,9 +113,6 @@
                   Publish Local Data
                 </button>
               </div>
-              <button class="ghost-button" id="toggle-selection-mode-button" type="button">
-                Select Cards
-              </button>
               <label class="sort-control" id="sort-control">
                 <span>Sort cards</span>
                 <select id="column-sort">
@@ -439,7 +436,10 @@
 
     <template id="initiative-card-template">
       <article class="initiative-card">
-        <button class="ghost-button card-select-toggle" type="button" hidden>Select</button>
+        <label class="card-select-toggle">
+          <input class="card-select-checkbox" type="checkbox" />
+          <span>Select</span>
+        </label>
         <div class="card-topline">
           <span class="type-badge"></span>
           <span class="channel-badge"></span>
@@ -452,7 +452,6 @@
         <div class="status-row">
           <span class="status-label"></span>
         </div>
-        <button class="ghost-button card-edit-button" type="button">Edit</button>
       </article>
     </template>
 
