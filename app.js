@@ -1440,9 +1440,9 @@ function createInitiativeCard(item) {
   fragment.querySelector(".status-label").style.background = `${config.color}14`;
   selectCheckbox.checked = isSelected;
   selectCheckbox.setAttribute("aria-label", `Select ${item.name}`);
-  selectToggle.querySelector("span").textContent = isSelected ? "Selected" : "Select";
   card.classList.toggle("selected", isSelected);
   card.classList.toggle("archived", item.isArchived);
+  card.classList.add(`status-${item.status.toLowerCase().replace(/\s+/g, "-")}`);
 
   selectToggle.addEventListener("click", (event) => {
     event.stopPropagation();

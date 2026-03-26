@@ -686,7 +686,7 @@ textarea {
 .calendar-month {
   display: grid;
   gap: 14px;
-  align-content: start;
+  align-content: stretch;
   grid-template-rows: auto minmax(0, 1fr);
   padding: 18px;
   border-radius: var(--radius-lg);
@@ -837,6 +837,8 @@ textarea {
   display: grid;
   gap: 12px;
   min-height: 0;
+  height: 100%;
+  align-content: start;
   overflow-y: auto;
   padding-right: 6px;
   scrollbar-width: thin;
@@ -870,6 +872,26 @@ textarea {
   cursor: pointer;
 }
 
+.initiative-card.status-planned {
+  border-color: rgba(93, 118, 153, 0.18);
+  background: linear-gradient(170deg, rgba(252, 253, 255, 0.98), rgba(236, 241, 246, 0.96));
+}
+
+.initiative-card.status-in-progress {
+  border-color: rgba(41, 81, 130, 0.14);
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.99), rgba(244, 248, 252, 0.96));
+}
+
+.initiative-card.status-complete {
+  border-color: rgba(32, 133, 89, 0.18);
+  background: linear-gradient(170deg, rgba(245, 253, 248, 0.99), rgba(224, 243, 232, 0.96));
+}
+
+.initiative-card.status-at-risk {
+  border-color: rgba(201, 80, 80, 0.2);
+  background: linear-gradient(170deg, rgba(255, 248, 248, 0.99), rgba(249, 228, 228, 0.96));
+}
+
 .initiative-card.selected {
   border-color: var(--progress);
   box-shadow: 0 0 0 2px rgba(47, 120, 198, 0.2), 0 8px 18px rgba(16, 45, 99, 0.06);
@@ -887,15 +909,14 @@ textarea {
   position: static;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  justify-self: flex-start;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(41, 81, 130, 0.12);
-  font-size: 0.74rem;
-  font-weight: 700;
-  color: var(--muted);
+  justify-content: center;
+  justify-self: flex-end;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(41, 81, 130, 0.18);
   cursor: pointer;
 }
 
@@ -919,7 +940,15 @@ textarea {
 }
 
 .card-topline {
-  align-items: flex-start;
+  align-items: center;
+}
+
+.card-topline-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .type-badge,
