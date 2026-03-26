@@ -1695,11 +1695,11 @@ async function handleRequestDelete() {
 
     try {
       await deleteRequestInShared(id);
-      await hydrateSharedState({ background: true, preserveStatus: true });
+      await hydrateSharedState({ background: true, preserveStatus: true, force: true });
       setSharedReadyStatus();
     } catch (error) {
       console.error(error);
-      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
+      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true, force: true });
       setSyncState({
         mode: "error",
         message: `Could not delete "${request.name}" from the shared workspace.`,
@@ -1739,11 +1739,11 @@ async function handleInitiativeDelete() {
 
     try {
       await deleteInitiativeInShared(id);
-      await hydrateSharedState({ background: true, preserveStatus: true });
+      await hydrateSharedState({ background: true, preserveStatus: true, force: true });
       setSharedReadyStatus();
     } catch (error) {
       console.error(error);
-      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
+      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true, force: true });
       setSyncState({
         mode: "error",
         message: `Could not delete "${initiative.name}" from the shared workspace.`,
@@ -1850,14 +1850,14 @@ async function handleFormSubmit(event) {
       if (state.convertingRequestId) {
         await deleteRequestInShared(state.convertingRequestId);
       }
-      await hydrateSharedState({ background: true, preserveStatus: true });
+      await hydrateSharedState({ background: true, preserveStatus: true, force: true });
       closeDialog();
       render();
       setSharedReadyStatus();
       return;
     } catch (error) {
       console.error(error);
-      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
+      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true, force: true });
       setSyncState({
         mode: "error",
         message: "Could not save that initiative to the shared workspace.",
@@ -1916,7 +1916,7 @@ async function handleRequestFormSubmit(event) {
 
     try {
       await saveRequestInShared(request);
-      await hydrateSharedState({ background: true, preserveStatus: true });
+      await hydrateSharedState({ background: true, preserveStatus: true, force: true });
       closeRequestDialog();
       state.activeView = "requests";
       render();
@@ -1924,7 +1924,7 @@ async function handleRequestFormSubmit(event) {
       return;
     } catch (error) {
       console.error(error);
-      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
+      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true, force: true });
       setSyncState({
         mode: "error",
         message: "Could not save that request to the shared workspace.",
@@ -1973,8 +1973,8 @@ function applySharedState(payload) {
   persistGoalsHtml();
 }
 
-async function hydrateSharedState({ background = false, suppressErrors = false, preserveStatus = false } = {}) {
-  if (background && (!isSharedWorkspaceActive() || shouldSkipBackgroundRefresh())) {
+async function hydrateSharedState({ background = false, suppressErrors = false, preserveStatus = false, force = false } = {}) {
+  if (background && !force && (!isSharedWorkspaceActive() || shouldSkipBackgroundRefresh())) {
     return null;
   }
 
@@ -2204,12 +2204,12 @@ async function updateInitiativesInBulk(ids, changes, savingMessage, failureMessa
 
     try {
       await bulkUpdateInitiativesInShared(ids, changes);
-      await hydrateSharedState({ background: true, preserveStatus: true });
+      await hydrateSharedState({ background: true, preserveStatus: true, force: true });
       setSharedReadyStatus();
       return true;
     } catch (error) {
       console.error(error);
-      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
+      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true, force: true });
       setSyncState({
         mode: "error",
         message: `${failureMessage} ${error.message || ""}`.trim(),
@@ -2695,12 +2695,12 @@ async function handleCardDrop(id, viewKey, label, getDropChanges) {
 
     try {
       await saveInitiativeInShared(nextItem, true);
-      await hydrateSharedState({ background: true, preserveStatus: true });
+      await hydrateSharedState({ background: true, preserveStatus: true, force: true });
       setSharedReadyStatus();
       return;
     } catch (error) {
       console.error(error);
-      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
+      await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true, force: true });
       setSyncState({
         mode: "error",
         message: `Could not move "${item.name}". ${error.message || ""}`.trim(),
