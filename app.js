@@ -2204,11 +2204,11 @@ async function updateInitiativesInBulk(ids, changes, savingMessage, failureMessa
       await hydrateSharedState({ background: true, suppressErrors: true, preserveStatus: true });
       setSyncState({
         mode: "error",
-        message: failureMessage,
+        message: `${failureMessage} ${error.message || ""}`.trim(),
         canPublishLocalData: false,
         isBusy: false,
       });
-      window.alert(failureMessage);
+      window.alert(`${failureMessage}\n\n${error.message || "The shared workspace rejected the request."}`);
       return false;
     }
   }
