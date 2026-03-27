@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Marketing Team Project Hub</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -22,12 +23,42 @@
           </div>
         </div>
         <div class="hero-actions">
-          <button class="primary-button" id="add-initiative-button" type="button">
-            Create New Project
-          </button>
-          <button class="ghost-button" id="open-request-form-button" type="button">
-            Request Form for Marketing
-          </button>
+          <div class="hero-action-group">
+            <button class="icon-button notification-button" id="notifications-button" type="button" aria-label="Open notifications">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M12 3a5 5 0 0 0-5 5v2.1c0 .8-.24 1.58-.7 2.22L5 14.25V16h14v-1.75l-1.3-1.93a4 4 0 0 1-.7-2.22V8a5 5 0 0 0-5-5Zm0 18a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 21Z"
+                  fill="currentColor"
+                />
+              </svg>
+              <span class="notification-count" id="notifications-count" hidden>0</span>
+            </button>
+            <button class="primary-button" id="add-initiative-button" type="button">
+              Create New Project
+            </button>
+            <button class="ghost-button" id="open-request-form-button" type="button">
+              Request Form for Marketing
+            </button>
+          </div>
+          <section class="notification-panel" id="notification-panel" hidden>
+            <div class="notification-panel-header">
+              <div>
+                <p class="eyebrow">Notifications</p>
+                <h2>Activity Feed</h2>
+              </div>
+              <button class="icon-button" id="close-notifications-button" type="button" aria-label="Close notifications">
+                ×
+              </button>
+            </div>
+            <div class="notification-panel-section">
+              <h3>New Marketing Requests</h3>
+              <div id="notification-requests-list"></div>
+            </div>
+            <div class="notification-panel-section">
+              <h3>Recent Project Changes</h3>
+              <div id="notification-changelog-list"></div>
+            </div>
+          </section>
         </div>
       </header>
 
@@ -404,7 +435,7 @@
       <div class="details-panel">
         <div class="dialog-header">
           <div>
-            <p class="eyebrow">Initiative Details</p>
+            <p class="eyebrow">Project Details</p>
             <h2 id="details-title"></h2>
           </div>
           <button class="icon-button" id="close-details-button" type="button" aria-label="Close details">

@@ -91,6 +91,7 @@ function fromInitiativeRecord(record) {
     description: record.description || "",
     isArchived: Boolean(record.is_archived),
     archivedAt: record.archived_at || "",
+    updatedAt: record.updated_at || "",
   };
 }
 
@@ -129,6 +130,7 @@ function fromRequestRecord(record) {
     neededBy: record.needed_by || "",
     channels: Array.isArray(record.channels) ? record.channels : [],
     notes: record.notes || "",
+    updatedAt: record.updated_at || "",
   };
 }
 

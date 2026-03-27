@@ -1,6 +1,7 @@
 const STORAGE_KEY = "marketing-initiative-dashboard-v4";
 const REQUESTS_STORAGE_KEY = "marketing-request-catalog-v1";
 const GOALS_STORAGE_KEY = "marketing-goals-rich-text-v1";
+const REQUEST_NOTIFICATIONS_SEEN_KEY = "marketing-request-notifications-seen-v1";
 const API_BASE = "/.netlify/functions";
 const SHARED_REFRESH_INTERVAL_MS = 60000;
 
@@ -602,6 +603,8 @@ const state = {
   },
   selectedInitiativeIds: [],
   draggedInitiativeId: null,
+  notificationsOpen: false,
+  requestNotificationsSeenAt: loadRequestNotificationsSeenAt(),
   editingId: null,
   convertingRequestId: null,
   sync: {
@@ -617,6 +620,12 @@ let sharedRefreshTimer = 0;
 
 const elements = {
   addButton: document.querySelector("#add-initiative-button"),
+  notificationsButton: document.querySelector("#notifications-button"),
+  notificationsCount: document.querySelector("#notifications-count"),
+  notificationPanel: document.querySelector("#notification-panel"),
+  closeNotificationsButton: document.querySelector("#close-notifications-button"),
+  notificationRequestsList: document.querySelector("#notification-requests-list"),
+  notificationChangelogList: document.querySelector("#notification-changelog-list"),
   clearFiltersButton: document.querySelector("#clear-filters-button"),
   quarterFilter: document.querySelector("#quarter-filter"),
   channelFilterGroup: document.querySelector("#channel-filter-group"),
@@ -708,6 +717,8 @@ async function initialize() {
 
 function bindEvents() {
   elements.addButton.addEventListener("click", () => openDialog());
+  elements.notificationsButton.addEventListener("click", handleNotificationsToggle);
+  elements.closeNotificationsButton.addEventListener("click", closeNotificationsPanel);
   elements.openRequestFormButton.addEventListener("click", openRequestDialog);
   elements.clearFiltersButton.addEventListener("click", clearFilters);
   elements.closeDialogButton.addEventListener("click", closeDialog);
@@ -757,6 +768,7 @@ function bindEvents() {
   elements.form.addEventListener("submit", handleFormSubmit);
   elements.requestForm.addEventListener("submit", handleRequestFormSubmit);
   elements.bulkEditForm.addEventListener("submit", handleBulkEditSubmit);
+  document.addEventListener("click", handleDocumentClick);
 }
 
 function render() {
@@ -772,6 +784,7 @@ function render() {
   populateEditorChannelOptions();
   populateRequestQuarterOptions();
   renderBulkToolbar();
+  renderNotifications();
   syncFilters();
   syncSort();
   renderSnapshot();
@@ -786,6 +799,44 @@ function renderSyncStatus() {
   elements.publishSharedDataButton.disabled = state.sync.isBusy;
   elements.publishSharedDataButton.textContent =
     state.sync.isBusy && state.sync.canPublishLocalData ? "Publishing..." : "Publish Local Data";
+}
+
+function renderNotifications() {
+  const unreadCount = getUnreadRequestNotificationsCount();
+  elements.notificationsCount.hidden = unreadCount === 0;
+  elements.notificationsCount.textContent = unreadCount > 9 ? "9+" : `${unreadCount}`;
+  elements.notificationPanel.hidden = !state.notificationsOpen;
+
+  const requestEntries = [...state.requests]
+    .sort((left, right) => compareActivityDates(getRequestActivityDate(right), getRequestActivityDate(left)))
+    .slice(0, 5);
+  const changeEntries = [...state.initiatives]
+    .sort((left, right) => compareActivityDates(getInitiativeActivityDate(right), getInitiativeActivityDate(left)))
+    .slice(0, 6);
+
+  elements.notificationRequestsList.replaceChildren(
+    ...(requestEntries.length
+      ? requestEntries.map((request) =>
+          createNotificationItem({
+            title: request.name,
+            meta: `${request.requestedBy} requested support`,
+            timestamp: getRequestActivityDate(request),
+          })
+        )
+      : [createNotificationEmptyState("No request notifications yet.")])
+  );
+
+  elements.notificationChangelogList.replaceChildren(
+    ...(changeEntries.length
+      ? changeEntries.map((item) =>
+          createNotificationItem({
+            title: item.name,
+            meta: `Project updated by ${item.owner}`,
+            timestamp: getInitiativeActivityDate(item),
+          })
+        )
+      : [createNotificationEmptyState("No project changes yet.")])
+  );
 }
 
 function setSyncState(nextState) {
@@ -846,6 +897,38 @@ function setSharedReadyStatus(message = "Shared Workspace is Live") {
   });
 }
 
+function handleNotificationsToggle(event) {
+  event.stopPropagation();
+  state.notificationsOpen = !state.notificationsOpen;
+  if (state.notificationsOpen) {
+    markRequestNotificationsSeen();
+  }
+  renderNotifications();
+}
+
+function closeNotificationsPanel() {
+  if (!state.notificationsOpen) {
+    return;
+  }
+  state.notificationsOpen = false;
+  renderNotifications();
+}
+
+function handleDocumentClick(event) {
+  if (!state.notificationsOpen) {
+    return;
+  }
+
+  if (
+    elements.notificationPanel.contains(event.target) ||
+    elements.notificationsButton.contains(event.target)
+  ) {
+    return;
+  }
+
+  closeNotificationsPanel();
+}
+
 function startSharedRefreshLoop() {
   if (sharedRefreshTimer) {
     return;
@@ -859,6 +942,106 @@ function handleVisibilityChange() {
   if (!document.hidden) {
     hydrateSharedState({ background: true });
   }
+}
+
+function getUnreadRequestNotificationsCount() {
+  return state.requests.filter((request) => {
+    const timestamp = getRequestActivityDate(request);
+    return timestamp && timestamp > state.requestNotificationsSeenAt;
+  }).length;
+}
+
+function loadRequestNotificationsSeenAt() {
+  try {
+    return window.localStorage.getItem(REQUEST_NOTIFICATIONS_SEEN_KEY) || "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function markRequestNotificationsSeen() {
+  const latestRequestTimestamp = state.requests
+    .map(getRequestActivityDate)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+
+  state.requestNotificationsSeenAt = latestRequestTimestamp || new Date().toISOString();
+  try {
+    window.localStorage.setItem(REQUEST_NOTIFICATIONS_SEEN_KEY, state.requestNotificationsSeenAt);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function getRequestActivityDate(request) {
+  if (typeof request.updatedAt === "string" && request.updatedAt) {
+    return request.updatedAt;
+  }
+  if (request.requestedDate) {
+    return `${request.requestedDate}T12:00:00.000Z`;
+  }
+  return "";
+}
+
+function getInitiativeActivityDate(item) {
+  if (typeof item.updatedAt === "string" && item.updatedAt) {
+    return item.updatedAt;
+  }
+  if (typeof item.archivedAt === "string" && item.archivedAt) {
+    return item.archivedAt;
+  }
+  const effectiveDueDate = getEffectiveDueDate(item);
+  return effectiveDueDate ? `${effectiveDueDate}T12:00:00.000Z` : "";
+}
+
+function compareActivityDates(left, right) {
+  if (!left && !right) {
+    return 0;
+  }
+  if (!left) {
+    return -1;
+  }
+  if (!right) {
+    return 1;
+  }
+  return left.localeCompare(right);
+}
+
+function createNotificationItem({ title, meta, timestamp }) {
+  const item = document.createElement("article");
+  item.className = "notification-item";
+  item.innerHTML = `
+    <strong>${title}</strong>
+    <p>${meta}</p>
+    <span>${formatNotificationTimestamp(timestamp)}</span>
+  `;
+  return item;
+}
+
+function createNotificationEmptyState(message) {
+  const item = document.createElement("div");
+  item.className = "notification-empty";
+  item.textContent = message;
+  return item;
+}
+
+function formatNotificationTimestamp(timestamp) {
+  if (!timestamp) {
+    return "Unknown time";
+  }
+
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown time";
+  }
+
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 function populateEditorTypeOptions() {
@@ -1843,6 +2026,7 @@ async function handleFormSubmit(event) {
     description: formData.get("description").toString().trim(),
     isArchived: existingItem?.isArchived || false,
     archivedAt: existingItem?.archivedAt || "",
+    updatedAt: new Date().toISOString(),
   };
 
   if (isSharedWorkspaceActive()) {
@@ -1914,6 +2098,7 @@ async function handleRequestFormSubmit(event) {
     neededBy: formData.get("neededBy").toString(),
     channels,
     notes: formData.get("notes").toString().trim(),
+    updatedAt: new Date().toISOString(),
   };
 
   if (isSharedWorkspaceActive()) {
@@ -2189,6 +2374,7 @@ function applyInitiativeChanges(item, changes) {
     deadline: typeof changes.deadline === "string" ? changes.deadline : item.deadline,
     startDate: typeof changes.startDate === "string" ? changes.startDate : item.startDate,
     endDate: typeof changes.endDate === "string" ? changes.endDate : item.endDate,
+    updatedAt: new Date().toISOString(),
   };
 
   if (typeof changes.isArchived === "boolean") {
@@ -2301,6 +2487,7 @@ function normalizeInitiatives(items, { fallbackToDefaults = true } = {}) {
     const startDate = typeof item.startDate === "string" ? item.startDate : "";
     const endDate = typeof item.endDate === "string" ? item.endDate : type === "Event" ? deadline : "";
     const archivedAt = typeof item.archivedAt === "string" ? item.archivedAt : "";
+    const updatedAt = typeof item.updatedAt === "string" ? item.updatedAt : "";
     return {
       id: item.id || createId(),
       name: item.name || "Untitled initiative",
@@ -2315,6 +2502,7 @@ function normalizeInitiatives(items, { fallbackToDefaults = true } = {}) {
       description: typeof item.description === "string" ? item.description : "",
       isArchived: Boolean(item.isArchived),
       archivedAt,
+      updatedAt,
     };
   });
 }
@@ -2334,6 +2522,7 @@ function normalizeRequests(items) {
     neededBy: typeof item.neededBy === "string" ? item.neededBy : "",
     channels: normalizeChannels(item.channels ?? item.channel),
     notes: typeof item.notes === "string" ? item.notes : "",
+    updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : "",
   }));
 }
 
