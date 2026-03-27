@@ -10,7 +10,7 @@ const TYPE_OPTIONS = [
   "Strategic Initiative",
   "Event",
   "Social Posts",
-  "Website Only",
+  "Website",
   "Blog Posts",
   "Ebooks/Guides",
   "Webinars",
@@ -21,7 +21,7 @@ const TYPE_OPTIONS = [
 const SOCIAL_TYPE = "Social Posts";
 const WORKSPACE_VIEWS = ["roadmap", "calendar", "social", "goals", "requests"];
 const CONTENT_TYPES = TYPE_OPTIONS.filter(
-  (type) => !["Strategic Initiative", "Event", SOCIAL_TYPE].includes(type)
+  (type) => !["Strategic Initiative", "Event", SOCIAL_TYPE, "Website"].includes(type)
 );
 const GOALS_CONTENT = {
   intro:
@@ -345,7 +345,7 @@ const defaultInitiatives = [
   {
     id: createId(),
     name: "Partner Page (High Level)",
-    type: "Website Only",
+    type: "Website",
     channels: ["Inbound", "Referrals"],
     owner: "Kelly",
     quarter: "Q1 2026",
@@ -356,7 +356,7 @@ const defaultInitiatives = [
   {
     id: createId(),
     name: "Microsoft Partner Spotlight Page",
-    type: "Website Only",
+    type: "Website",
     channels: ["Inbound", "Referrals"],
     owner: "Kelly",
     quarter: "Q1 2026",
@@ -367,7 +367,7 @@ const defaultInitiatives = [
   {
     id: createId(),
     name: "MeshInsights Advertising Landing Page and Ads",
-    type: "Website Only",
+    type: "Website",
     channels: ["Inbound", "Outbound"],
     owner: "Eva",
     quarter: "Q1 2026",
@@ -378,7 +378,7 @@ const defaultInitiatives = [
   {
     id: createId(),
     name: "Exein Partner Spotlight Page",
-    type: "Website Only",
+    type: "Website",
     channels: ["Inbound", "Referrals"],
     owner: "Kelly",
     quarter: "Q1 2026",
@@ -389,7 +389,7 @@ const defaultInitiatives = [
   {
     id: createId(),
     name: "STMicro Partner Spotlight Page",
-    type: "Website Only",
+    type: "Website",
     channels: ["Inbound", "Referrals"],
     owner: "Kelly",
     quarter: "Q1 2026",
@@ -516,7 +516,7 @@ const defaultInitiatives = [
   {
     id: createId(),
     name: "New Website and P1 Brand Assets",
-    type: "Website Only",
+    type: "Website",
     channels: ["Inbound"],
     owner: "Eva",
     quarter: "Q2 2026",
@@ -1170,7 +1170,7 @@ function renderSnapshot() {
 
   elements.snapshotMetrics.innerHTML = "";
   [
-    { label: "Total initiatives", value: filtered.length },
+    { label: "Total projects", value: filtered.length },
     { label: "Active now", value: inProgressCount + atRiskCount },
     { label: "At risk", value: atRiskCount },
     { label: "Complete", value: completeCount },
@@ -2370,8 +2370,8 @@ function normalizeType(type, name = "") {
     return type;
   }
 
-  if (type === "Website/Landing Pages") {
-    return "Website Only";
+  if (type === "Website/Landing Pages" || type === "Website Only") {
+    return "Website";
   }
 
   if (type === "Initiative" || type === "Campaign") {
@@ -2395,7 +2395,7 @@ function inferContentType(name = "") {
     return "Social Posts";
   }
   if (lower.includes("website") || lower.includes("landing")) {
-    return "Website Only";
+    return "Website";
   }
   if (lower.includes("blog")) {
     return "Blog Posts";
